@@ -126,6 +126,42 @@
     padding:10px 20px 22px;
   }
 
+  .quick-actions{
+    display:flex;
+    gap:12px;
+    width:100%;
+    max-width:360px;
+  }
+  .qa-btn{
+    flex:1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    padding:13px 10px;
+    border-radius:12px;
+    background:var(--panel);
+    border:1px solid var(--line);
+    color:var(--text);
+    text-decoration:none;
+    font-size:14px;
+    font-weight:600;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .qa-btn:active{background:var(--panel-2);}
+  .qa-btn.disabled{
+    opacity:.4;
+    pointer-events:none;
+  }
+  .offline-note{
+    color:var(--muted);
+    font-size:12px;
+    text-align:center;
+    max-width:340px;
+    line-height:1.8;
+    margin-top:-6px;
+  }
+
   /* Settings overlay */
   .overlay{
     position:fixed;inset:0;
@@ -222,6 +258,12 @@
     <div class="log-item"><span class="dot" id="d-front"></span><span>ارسال عکس دوربین جلو</span></div>
     <div class="log-item"><span class="dot" id="d-back"></span><span>ارسال عکس دوربین عقب</span></div>
   </div>
+
+  <p class="offline-note">اگه پیام‌رسان باز نمی‌شه (فیلتر یا مشکل اینترنت)، از این دو دکمه که بدون اینترنت هم کار می‌کنن استفاده کن:</p>
+  <div class="quick-actions">
+    <a class="qa-btn disabled" id="callBtn" href="tel:">📞 تماس با پدر</a>
+    <a class="qa-btn disabled" id="smsBtn" href="sms:">✉️ پیامک آماده</a>
+  </div>
 </main>
 
 <p class="footer-note">این ابزار مستقل است و توسط تلگرام یا هیچ شرکت دیگری پشتیبانی نمی‌شود. قبل از نیاز واقعی، حتماً با دکمه «تست ارسال» در تنظیمات، اتصال را بررسی کنید.</p>
@@ -229,8 +271,14 @@
 <!-- Settings overlay -->
 <div class="overlay" id="overlay">
   <div class="sheet">
-    <h2>تنظیمات ربات تلگرام</h2>
+    <h2>تنظیمات ربات پیام‌رسان</h2>
     <p class="desc">این اطلاعات فقط داخل همین گوشی و همین مرورگر ذخیره می‌شود و به جایی ارسال نمی‌شود، مگر لحظه‌ای که خودتان دکمه کمک را بزنید.</p>
+
+    <label for="provider">پیام‌رسان</label>
+    <select id="provider" style="width:100%;background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:12px 14px;color:var(--text);font-size:15px;">
+      <option value="bale">بله (پیشنهاد می‌شود — داخل ایران فیلتر نیست)</option>
+      <option value="telegram">تلگرام (نیاز به VPN فعال دارد)</option>
+    </select>
 
     <label for="botToken">توکن ربات (Bot Token)</label>
     <input type="text" id="botToken" placeholder="مثلاً 123456789:AAExxxxxxxxxxxxxxxxxxxxxx" autocomplete="off">
@@ -240,6 +288,12 @@
 
     <label for="alertText">متن پیام هشدار</label>
     <textarea id="alertText">🚨 هشدار! من الان در خطر هستم. لطفاً سریع بهم زنگ بزن. موقعیت و عکس‌ها رو الان براتون می‌فرستم.</textarea>
+
+    <hr class="sep">
+
+    <label for="phoneNumber">شمارهٔ تلفن پدر (برای تماس/پیامک اضطراری بدون نیاز به اینترنت)</label>
+    <input type="text" id="phoneNumber" placeholder="مثلاً 09121234567" inputmode="tel" dir="ltr" style="text-align:left;">
+    <p class="desc" style="margin:8px 0 0;">این شماره فقط برای دو دکمهٔ «تماس» و «پیامک» استفاده می‌شه که با آنتن معمولی کار می‌کنن، حتی اگه تلگرام فیلتر باشه یا VPN نداشته باشی.</p>
 
     <div class="row-btns">
       <button class="secondary" id="testBtn">تست ارسال</button>
@@ -251,13 +305,21 @@
 
     <details>
       <summary>راهنما: چطور توکن و چت آیدی رو بگیرم؟</summary>
+      <p style="margin:0 0 8px;"><strong>برای بله (پیشنهادی):</strong></p>
       <ol>
-        <li>در تلگرام دنبال <code>@BotFather</code> بگردید و <code>/newbot</code> بزنید، یک اسم انتخاب کنید تا توکن بدهد.</li>
-        <li>یک چت با ربات جدیدتون باز کنید و یک پیام (مثلاً «سلام») بفرستید.</li>
-        <li>در مرورگر این آدرس را باز کنید (به‌جای TOKEN، توکن خودتون را بگذارید):<br><code>https://api.telegram.org/botTOKEN/getUpdates</code></li>
-        <li>در خروجی، دنبال <code>"chat":{"id":...</code> بگردید؛ همون عدد، چت آیدی شماست.</li>
-        <li>اگر می‌خواهید پیام برای پدرتون بره، بهتره یک گروه دو نفره با پدرتون و ربات بسازید، یا ربات را به پدرتون معرفی کنید و از چت آیدیِ خودِ پدر استفاده کنید (باید اول به ربات پیام بده).</li>
+        <li>داخل اپ بله، دنبال <code>botfather@</code> بگردید، پیام بدید و <code>/newbot</code> بزنید تا یک توکن بگیرید.</li>
+        <li>یک پیام (مثلاً «سلام») از حساب خودتان یا پدرتان به ربات جدید بفرستید.</li>
+        <li>در مرورگر آدرس زیر را باز کنید (به‌جای TOKEN، توکن را بگذارید):<br><code>https://tapi.bale.ai/botTOKEN/getUpdates</code></li>
+        <li>دنبال <code>"chat":{"id":...</code> بگردید؛ همون عدد Chat ID شماست.</li>
       </ol>
+      <p style="margin:16px 0 8px;"><strong>برای تلگرام:</strong></p>
+      <ol>
+        <li>در تلگرام دنبال <code>@BotFather</code> بگردید و <code>/newbot</code> بزنید تا توکن بدهد.</li>
+        <li>یک چت با ربات جدیدتون باز کنید و یک پیام بفرستید.</li>
+        <li>آدرس زیر را باز کنید:<br><code>https://api.telegram.org/botTOKEN/getUpdates</code></li>
+        <li>دنبال <code>"chat":{"id":...</code> بگردید.</li>
+      </ol>
+      <p style="margin:16px 0 0;">در هر دو حالت، اگر می‌خواهید مستقیم برای پدرتون بره، بهتره یک گروه دو/سه‌نفره با پدرتون و ربات بسازید و Chat ID همان گروه (که با علامت منفی شروع می‌شود) را استفاده کنید — یا Chat ID خودِ پدر را بگیرید (باید اول او به ربات پیام بدهد).</p>
     </details>
   </div>
 </div>
@@ -269,7 +331,9 @@ function getConfig(){
   return {
     token: localStorage.getItem('sos_bot_token') || '',
     chatId: localStorage.getItem('sos_chat_id') || '',
-    text: localStorage.getItem('sos_alert_text') || $('alertText').defaultValue
+    text: localStorage.getItem('sos_alert_text') || $('alertText').defaultValue,
+    phone: localStorage.getItem('sos_phone') || '',
+    provider: localStorage.getItem('sos_provider') || 'bale'
   };
 }
 
@@ -278,6 +342,8 @@ function loadSettingsUI(){
   $('botToken').value = cfg.token;
   $('chatId').value = cfg.chatId;
   $('alertText').value = cfg.text;
+  $('phoneNumber').value = cfg.phone;
+  $('provider').value = cfg.provider;
 }
 
 function openSettings(){
@@ -297,13 +363,22 @@ $('saveBtn').addEventListener('click', ()=>{
   localStorage.setItem('sos_bot_token', $('botToken').value.trim());
   localStorage.setItem('sos_chat_id', $('chatId').value.trim());
   localStorage.setItem('sos_alert_text', $('alertText').value.trim());
+  localStorage.setItem('sos_phone', $('phoneNumber').value.trim());
+  localStorage.setItem('sos_provider', $('provider').value);
   $('settingsStatus').textContent = 'ذخیره شد ✔';
   $('settingsStatus').className = 'status-msg ok';
   refreshMainState();
   setTimeout(closeSettings, 700);
 });
 
+function apiBase(provider, token){
+  return provider === 'bale'
+    ? `https://tapi.bale.ai/bot${token}/`
+    : `https://api.telegram.org/bot${token}/`;
+}
+
 $('testBtn').addEventListener('click', async ()=>{
+  const provider = $('provider').value;
   const token = $('botToken').value.trim();
   const chatId = $('chatId').value.trim();
   $('settingsStatus').textContent = 'در حال تست...';
@@ -314,7 +389,7 @@ $('testBtn').addEventListener('click', async ()=>{
     return;
   }
   try{
-    const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+    const res = await fetch(apiBase(provider, token) + 'sendMessage', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({chat_id: chatId, text: '✅ این یک پیام تست از اپلیکیشن دکمه کمک است.'})
@@ -328,10 +403,12 @@ $('testBtn').addEventListener('click', async ()=>{
       $('settingsStatus').className = 'status-msg fail';
     }
   }catch(err){
-    $('settingsStatus').textContent = 'خطا در اتصال. اینترنت یا توکن را بررسی کنید.';
+    $('settingsStatus').textContent = 'خطا در اتصال. اینترنت یا توکن را بررسی کنید' + (provider === 'telegram' ? ' (و اینکه VPN فعال باشد).' : '.');
     $('settingsStatus').className = 'status-msg fail';
   }
 });
+
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
 
 function refreshMainState(){
   const cfg = getConfig();
@@ -340,7 +417,36 @@ function refreshMainState(){
   $('hintText').textContent = ready
     ? 'با فشردن دکمه، لوکیشن و عکس دوربین جلو و عقب گرفته می‌شود و همراه پیام هشدار برای فرد اضطراری ارسال می‌شود.'
     : 'اول از تنظیمات (⚙️) توکن ربات و چت آیدی را وارد و ذخیره کنید.';
+
+  const phoneReady = !!cfg.phone;
+  $('callBtn').classList.toggle('disabled', !phoneReady);
+  $('smsBtn').classList.toggle('disabled', !phoneReady);
+  if(phoneReady){
+    $('callBtn').href = 'tel:' + cfg.phone;
+    $('smsBtn').href = 'sms:' + cfg.phone + (isIOS ? '&' : '?') + 'body=' + encodeURIComponent(cfg.text);
+  }
 }
+
+$('smsBtn').addEventListener('click', (e)=>{
+  // best-effort: try to attach a fresh location link, but never block the SMS if it's slow/denied
+  const cfg = getConfig();
+  if(!cfg.phone) return;
+  if(!navigator.geolocation){ return; } // fall back to the plain link already set
+  e.preventDefault();
+  let done = false;
+  const go = (extra)=>{
+    if(done) return;
+    done = true;
+    const body = cfg.text + (extra ? ('\n' + extra) : '');
+    window.location.href = 'sms:' + cfg.phone + (isIOS ? '&' : '?') + 'body=' + encodeURIComponent(body);
+  };
+  const timer = setTimeout(()=>go(null), 1500);
+  navigator.geolocation.getCurrentPosition(
+    pos=>{ clearTimeout(timer); go('موقعیت من: https://maps.google.com/?q=' + pos.coords.latitude + ',' + pos.coords.longitude); },
+    ()=>{ clearTimeout(timer); go(null); },
+    { enableHighAccuracy:true, timeout:1400, maximumAge:60000 }
+  );
+});
 
 function setDot(id, state){
   const el = $(id);
@@ -351,8 +457,8 @@ function resetLog(){
   $('log').classList.add('show');
 }
 
-async function tgSendMessage(token, chatId, text){
-  const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+async function tgSendMessage(provider, token, chatId, text){
+  const res = await fetch(apiBase(provider, token) + 'sendMessage', {
     method:'POST',
     headers:{'Content-Type':'application/json'},
     body: JSON.stringify({chat_id: chatId, text})
@@ -360,8 +466,8 @@ async function tgSendMessage(token, chatId, text){
   return res.json();
 }
 
-async function tgSendLocation(token, chatId, lat, lon){
-  const res = await fetch(`https://api.telegram.org/bot${token}/sendLocation`, {
+async function tgSendLocation(provider, token, chatId, lat, lon){
+  const res = await fetch(apiBase(provider, token) + 'sendLocation', {
     method:'POST',
     headers:{'Content-Type':'application/json'},
     body: JSON.stringify({chat_id: chatId, latitude: lat, longitude: lon})
@@ -369,12 +475,12 @@ async function tgSendLocation(token, chatId, lat, lon){
   return res.json();
 }
 
-async function tgSendPhoto(token, chatId, blob, caption){
+async function tgSendPhoto(provider, token, chatId, blob, caption){
   const form = new FormData();
   form.append('chat_id', chatId);
   form.append('caption', caption || '');
   form.append('photo', blob, 'photo.jpg');
-  const res = await fetch(`https://api.telegram.org/bot${token}/sendPhoto`, {
+  const res = await fetch(apiBase(provider, token) + 'sendPhoto', {
     method:'POST',
     body: form
   });
@@ -428,20 +534,20 @@ async function runSOS(){
 
   // 1) alert text — sent first, highest priority
   try{
-    const r = await tgSendMessage(cfg.token, cfg.chatId, cfg.text);
+    const r = await tgSendMessage(cfg.provider, cfg.token, cfg.chatId, cfg.text);
     setDot('d-msg', r.ok ? 'ok' : 'fail');
   }catch(e){ setDot('d-msg','fail'); }
 
   // 2) location
   try{
     const coords = await getLocationOnce();
-    const r = await tgSendLocation(cfg.token, cfg.chatId, coords.latitude, coords.longitude);
+    const r = await tgSendLocation(cfg.provider, cfg.token, cfg.chatId, coords.latitude, coords.longitude);
     if(r.ok){
       setDot('d-loc','ok');
     } else {
       // fallback: send as text link
       const link = `https://maps.google.com/?q=${coords.latitude},${coords.longitude}`;
-      const r2 = await tgSendMessage(cfg.token, cfg.chatId, 'موقعیت من: ' + link);
+      const r2 = await tgSendMessage(cfg.provider, cfg.token, cfg.chatId, 'موقعیت من: ' + link);
       setDot('d-loc', r2.ok ? 'ok' : 'fail');
     }
   }catch(e){ setDot('d-loc','fail'); }
@@ -449,14 +555,14 @@ async function runSOS(){
   // 3) front camera
   try{
     const blob = await captureFromCamera('user');
-    const r = await tgSendPhoto(cfg.token, cfg.chatId, blob, 'دوربین جلو');
+    const r = await tgSendPhoto(cfg.provider, cfg.token, cfg.chatId, blob, 'دوربین جلو');
     setDot('d-front', r.ok ? 'ok' : 'fail');
   }catch(e){ setDot('d-front','fail'); }
 
   // 4) back camera
   try{
     const blob = await captureFromCamera('environment');
-    const r = await tgSendPhoto(cfg.token, cfg.chatId, blob, 'دوربین عقب');
+    const r = await tgSendPhoto(cfg.provider, cfg.token, cfg.chatId, blob, 'دوربین عقب');
     setDot('d-back', r.ok ? 'ok' : 'fail');
   }catch(e){ setDot('d-back','fail'); }
 
