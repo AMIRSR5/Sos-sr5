@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>دکمه کمک</title>
+<style>
+  :root{
+    --bg:#0d0f12;
+    --panel:#15181d;
+    --panel-2:#1c2027;
+    --text:#e9ebee;
+    --muted:#8b93a1;
+    --danger:#e0342f;
+    --danger-dim:#8f221f;
+    --ok:#3aa06b;
+    --warn:#c98a2c;
+    --line:#262b33;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Tahoma,"Vazirmatn",sans-serif;
+    display:flex;
+    flex-direction:column;
+    min-height:100vh;
+  }
+  header{
+    padding:18px 20px 8px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+  }
+  header h1{
+    font-size:16px;
+    font-weight:600;
+    margin:0;
+    color:var(--muted);
+    letter-spacing:.2px;
+  }
+  .gear{
+    background:none;
+    border:none;
+    color:var(--muted);
+    font-size:20px;
+    cursor:pointer;
+    padding:6px 10px;
+    border-radius:8px;
+  }
+  .gear:active{background:var(--panel-2);}
+
+  main{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+    gap:22px;
+  }
+
+  .sos-btn{
+    width:min(58vw,230px);
+    height:min(58vw,230px);
+    border-radius:50%;
+    border:none;
+    background:radial-gradient(circle at 35% 30%, #ff5b52, var(--danger) 60%, var(--danger-dim) 100%);
+    color:#fff;
+    font-size:28px;
+    font-weight:700;
+    letter-spacing:1px;
+    box-shadow:0 0 0 8px rgba(224,52,47,0.12), 0 10px 30px rgba(224,52,47,0.35);
+    cursor:pointer;
+    -webkit-tap-highlight-color:transparent;
+    transition:transform .12s ease;
+  }
+  .sos-btn:active{transform:scale(.96);}
+  .sos-btn[disabled]{
+    filter:grayscale(.4);
+    opacity:.7;
+  }
+
+  .hint{
+    color:var(--muted);
+    font-size:14px;
+    text-align:center;
+    max-width:320px;
+    line-height:1.8;
+  }
+
+  .log{
+    width:100%;
+    max-width:420px;
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:14px 16px;
+    display:none;
+    flex-direction:column;
+    gap:8px;
+  }
+  .log.show{display:flex;}
+  .log-item{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-size:14px;
+  }
+  .dot{
+    width:9px;height:9px;border-radius:50%;
+    flex:none;
+    background:var(--muted);
+  }
+  .dot.ok{background:var(--ok);}
+  .dot.fail{background:var(--danger);}
+  .dot.pending{background:var(--warn); animation:pulse 1s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.35;}}
+
+  .footer-note{
+    color:var(--muted);
+    font-size:12px;
+    text-align:center;
+    padding:10px 20px 22px;
+  }
+
+  /* Settings overlay */
+  .overlay{
+    position:fixed;inset:0;
+    background:rgba(5,6,8,.72);
+    display:none;
+    align-items:flex-end;
+    justify-content:center;
+    z-index:20;
+  }
+  .overlay.show{display:flex;}
+  .sheet{
+    width:100%;
+    max-width:480px;
+    background:var(--panel);
+    border-radius:20px 20px 0 0;
+    padding:22px 20px 28px;
+    border-top:1px solid var(--line);
+    max-height:88vh;
+    overflow-y:auto;
+  }
+  .sheet h2{
+    margin:0 0 4px;
+    font-size:18px;
+  }
+  .sheet p.desc{
+    color:var(--muted);
+    font-size:13px;
+    line-height:1.8;
+    margin:0 0 18px;
+  }
+  label{
+    display:block;
+    font-size:13px;
+    color:var(--muted);
+    margin:14px 0 6px;
+  }
+  input[type=text], textarea{
+    width:100%;
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:12px 14px;
+    color:var(--text);
+    font-size:15px;
+    outline:none;
+    direction:ltr;
+    text-align:right;
+  }
+  textarea{resize:vertical;min-height:70px;direction:rtl;font-family:inherit;}
+  .row-btns{
+    display:flex;
+    gap:10px;
+    margin-top:20px;
+  }
+  button.primary, button.secondary{
+    flex:1;
+    padding:13px 10px;
+    border-radius:10px;
+    border:none;
+    font-size:15px;
+    font-weight:600;
+    cursor:pointer;
+  }
+  button.primary{background:#2f6fed;color:#fff;}
+  button.secondary{background:var(--panel-2);color:var(--text);border:1px solid var(--line);}
+  .status-msg{
+    margin-top:12px;
+    font-size:13px;
+    min-height:18px;
+  }
+  .status-msg.ok{color:var(--ok);}
+  .status-msg.fail{color:var(--danger);}
+  hr.sep{border:none;border-top:1px solid var(--line);margin:20px 0;}
+  details{color:var(--muted);font-size:13px;}
+  details summary{cursor:pointer;color:var(--text);margin-bottom:8px;}
+  details ol{padding-inline-start:20px;line-height:2;}
+  details code{background:var(--panel-2);padding:1px 6px;border-radius:5px;font-size:12px;}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>دکمه کمک</h1>
+  <button class="gear" id="openSettings" aria-label="تنظیمات">⚙️</button>
+</header>
+
+<main>
+  <button class="sos-btn" id="sosBtn">در خطرم</button>
+  <p class="hint" id="hintText">با فشردن دکمه، لوکیشن و عکس دوربین جلو و عقب گرفته می‌شود و همراه پیام هشدار برای فرد اضطراری ارسال می‌شود.</p>
+
+  <div class="log" id="log">
+    <div class="log-item"><span class="dot" id="d-msg"></span><span>ارسال پیام هشدار</span></div>
+    <div class="log-item"><span class="dot" id="d-loc"></span><span>ارسال موقعیت مکانی</span></div>
+    <div class="log-item"><span class="dot" id="d-front"></span><span>ارسال عکس دوربین جلو</span></div>
+    <div class="log-item"><span class="dot" id="d-back"></span><span>ارسال عکس دوربین عقب</span></div>
+  </div>
+</main>
+
+<p class="footer-note">این ابزار مستقل است و توسط تلگرام یا هیچ شرکت دیگری پشتیبانی نمی‌شود. قبل از نیاز واقعی، حتماً با دکمه «تست ارسال» در تنظیمات، اتصال را بررسی کنید.</p>
+
+<!-- Settings overlay -->
+<div class="overlay" id="overlay">
+  <div class="sheet">
+    <h2>تنظیمات ربات تلگرام</h2>
+    <p class="desc">این اطلاعات فقط داخل همین گوشی و همین مرورگر ذخیره می‌شود و به جایی ارسال نمی‌شود، مگر لحظه‌ای که خودتان دکمه کمک را بزنید.</p>
+
+    <label for="botToken">توکن ربات (Bot Token)</label>
+    <input type="text" id="botToken" placeholder="مثلاً 123456789:AAExxxxxxxxxxxxxxxxxxxxxx" autocomplete="off">
+
+    <label for="chatId">آیدی چت (Chat ID)</label>
+    <input type="text" id="chatId" placeholder="مثلاً 987654321">
+
+    <label for="alertText">متن پیام هشدار</label>
+    <textarea id="alertText">🚨 هشدار! من الان در خطر هستم. لطفاً سریع بهم زنگ بزن. موقعیت و عکس‌ها رو الان براتون می‌فرستم.</textarea>
+
+    <div class="row-btns">
+      <button class="secondary" id="testBtn">تست ارسال</button>
+      <button class="primary" id="saveBtn">ذخیره</button>
+    </div>
+    <p class="status-msg" id="settingsStatus"></p>
+
+    <hr class="sep">
+
+    <details>
+      <summary>راهنما: چطور توکن و چت آیدی رو بگیرم؟</summary>
+      <ol>
+        <li>در تلگرام دنبال <code>@BotFather</code> بگردید و <code>/newbot</code> بزنید، یک اسم انتخاب کنید تا توکن بدهد.</li>
+        <li>یک چت با ربات جدیدتون باز کنید و یک پیام (مثلاً «سلام») بفرستید.</li>
+        <li>در مرورگر این آدرس را باز کنید (به‌جای TOKEN، توکن خودتون را بگذارید):<br><code>https://api.telegram.org/botTOKEN/getUpdates</code></li>
+        <li>در خروجی، دنبال <code>"chat":{"id":...</code> بگردید؛ همون عدد، چت آیدی شماست.</li>
+        <li>اگر می‌خواهید پیام برای پدرتون بره، بهتره یک گروه دو نفره با پدرتون و ربات بسازید، یا ربات را به پدرتون معرفی کنید و از چت آیدیِ خودِ پدر استفاده کنید (باید اول به ربات پیام بده).</li>
+      </ol>
+    </details>
+  </div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+
+function getConfig(){
+  return {
+    token: localStorage.getItem('sos_bot_token') || '',
+    chatId: localStorage.getItem('sos_chat_id') || '',
+    text: localStorage.getItem('sos_alert_text') || $('alertText').defaultValue
+  };
+}
+
+function loadSettingsUI(){
+  const cfg = getConfig();
+  $('botToken').value = cfg.token;
+  $('chatId').value = cfg.chatId;
+  $('alertText').value = cfg.text;
+}
+
+function openSettings(){
+  loadSettingsUI();
+  $('settingsStatus').textContent = '';
+  $('settingsStatus').className = 'status-msg';
+  $('overlay').classList.add('show');
+}
+function closeSettings(){
+  $('overlay').classList.remove('show');
+}
+
+$('openSettings').addEventListener('click', openSettings);
+$('overlay').addEventListener('click', (e)=>{ if(e.target === $('overlay')) closeSettings(); });
+
+$('saveBtn').addEventListener('click', ()=>{
+  localStorage.setItem('sos_bot_token', $('botToken').value.trim());
+  localStorage.setItem('sos_chat_id', $('chatId').value.trim());
+  localStorage.setItem('sos_alert_text', $('alertText').value.trim());
+  $('settingsStatus').textContent = 'ذخیره شد ✔';
+  $('settingsStatus').className = 'status-msg ok';
+  refreshMainState();
+  setTimeout(closeSettings, 700);
+});
+
+$('testBtn').addEventListener('click', async ()=>{
+  const token = $('botToken').value.trim();
+  const chatId = $('chatId').value.trim();
+  $('settingsStatus').textContent = 'در حال تست...';
+  $('settingsStatus').className = 'status-msg';
+  if(!token || !chatId){
+    $('settingsStatus').textContent = 'اول توکن و چت آیدی رو وارد کنید.';
+    $('settingsStatus').className = 'status-msg fail';
+    return;
+  }
+  try{
+    const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({chat_id: chatId, text: '✅ این یک پیام تست از اپلیکیشن دکمه کمک است.'})
+    });
+    const data = await res.json();
+    if(data.ok){
+      $('settingsStatus').textContent = 'پیام تست با موفقیت ارسال شد ✔';
+      $('settingsStatus').className = 'status-msg ok';
+    } else {
+      $('settingsStatus').textContent = 'خطا: ' + (data.description || 'نامشخص');
+      $('settingsStatus').className = 'status-msg fail';
+    }
+  }catch(err){
+    $('settingsStatus').textContent = 'خطا در اتصال. اینترنت یا توکن را بررسی کنید.';
+    $('settingsStatus').className = 'status-msg fail';
+  }
+});
+
+function refreshMainState(){
+  const cfg = getConfig();
+  const ready = cfg.token && cfg.chatId;
+  $('sosBtn').disabled = !ready;
+  $('hintText').textContent = ready
+    ? 'با فشردن دکمه، لوکیشن و عکس دوربین جلو و عقب گرفته می‌شود و همراه پیام هشدار برای فرد اضطراری ارسال می‌شود.'
+    : 'اول از تنظیمات (⚙️) توکن ربات و چت آیدی را وارد و ذخیره کنید.';
+}
+
+function setDot(id, state){
+  const el = $(id);
+  el.className = 'dot ' + state;
+}
+function resetLog(){
+  ['d-msg','d-loc','d-front','d-back'].forEach(id=>setDot(id,'pending'));
+  $('log').classList.add('show');
+}
+
+async function tgSendMessage(token, chatId, text){
+  const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({chat_id: chatId, text})
+  });
+  return res.json();
+}
+
+async function tgSendLocation(token, chatId, lat, lon){
+  const res = await fetch(`https://api.telegram.org/bot${token}/sendLocation`, {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({chat_id: chatId, latitude: lat, longitude: lon})
+  });
+  return res.json();
+}
+
+async function tgSendPhoto(token, chatId, blob, caption){
+  const form = new FormData();
+  form.append('chat_id', chatId);
+  form.append('caption', caption || '');
+  form.append('photo', blob, 'photo.jpg');
+  const res = await fetch(`https://api.telegram.org/bot${token}/sendPhoto`, {
+    method:'POST',
+    body: form
+  });
+  return res.json();
+}
+
+function getLocationOnce(){
+  return new Promise((resolve, reject)=>{
+    if(!navigator.geolocation){ reject(new Error('no geolocation')); return; }
+    navigator.geolocation.getCurrentPosition(
+      pos => resolve(pos.coords),
+      err => reject(err),
+      { enableHighAccuracy:true, timeout:10000, maximumAge:0 }
+    );
+  });
+}
+
+async function captureFromCamera(facingMode){
+  const stream = await navigator.mediaDevices.getUserMedia({
+    video: { facingMode: { ideal: facingMode } },
+    audio: false
+  });
+  // give the camera a brief moment to adjust exposure/focus
+  await new Promise(r => setTimeout(r, 450));
+  const video = document.createElement('video');
+  video.srcObject = stream;
+  video.setAttribute('playsinline', 'true');
+  await video.play();
+  await new Promise(r => setTimeout(r, 250));
+
+  const canvas = document.createElement('canvas');
+  canvas.width = video.videoWidth || 720;
+  canvas.height = video.videoHeight || 960;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+  stream.getTracks().forEach(t => t.stop());
+
+  return new Promise(resolve=>{
+    canvas.toBlob(blob=> resolve(blob), 'image/jpeg', 0.85);
+  });
+}
+
+async function runSOS(){
+  const cfg = getConfig();
+  if(!cfg.token || !cfg.chatId) { openSettings(); return; }
+
+  $('sosBtn').disabled = true;
+  resetLog();
+  if(navigator.vibrate) navigator.vibrate([200,80,200]);
+
+  // 1) alert text — sent first, highest priority
+  try{
+    const r = await tgSendMessage(cfg.token, cfg.chatId, cfg.text);
+    setDot('d-msg', r.ok ? 'ok' : 'fail');
+  }catch(e){ setDot('d-msg','fail'); }
+
+  // 2) location
+  try{
+    const coords = await getLocationOnce();
+    const r = await tgSendLocation(cfg.token, cfg.chatId, coords.latitude, coords.longitude);
+    if(r.ok){
+      setDot('d-loc','ok');
+    } else {
+      // fallback: send as text link
+      const link = `https://maps.google.com/?q=${coords.latitude},${coords.longitude}`;
+      const r2 = await tgSendMessage(cfg.token, cfg.chatId, 'موقعیت من: ' + link);
+      setDot('d-loc', r2.ok ? 'ok' : 'fail');
+    }
+  }catch(e){ setDot('d-loc','fail'); }
+
+  // 3) front camera
+  try{
+    const blob = await captureFromCamera('user');
+    const r = await tgSendPhoto(cfg.token, cfg.chatId, blob, 'دوربین جلو');
+    setDot('d-front', r.ok ? 'ok' : 'fail');
+  }catch(e){ setDot('d-front','fail'); }
+
+  // 4) back camera
+  try{
+    const blob = await captureFromCamera('environment');
+    const r = await tgSendPhoto(cfg.token, cfg.chatId, blob, 'دوربین عقب');
+    setDot('d-back', r.ok ? 'ok' : 'fail');
+  }catch(e){ setDot('d-back','fail'); }
+
+  $('sosBtn').disabled = false;
+}
+
+$('sosBtn').addEventListener('click', runSOS);
+
+refreshMainState();
+</script>
+</body>
+</html>
