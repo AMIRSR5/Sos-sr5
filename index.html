@@ -259,19 +259,20 @@ function apiBase(provider, token){
 }
 async function sendMessageTo(provider, token, chatId, text){
   try{
-    const r = await fetch(apiBase(provider, token)+'sendMessage', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({chat_id: chatId, text})
-    });
+    const form = new FormData();
+    form.append('chat_id', chatId);
+    form.append('text', text);
+    const r = await fetch(apiBase(provider, token)+'sendMessage', { method:'POST', body: form });
     return await r.json();
   }catch(e){ return {ok:false}; }
 }
 async function sendLocationTo(provider, token, chatId, lat, lon){
   try{
-    const r = await fetch(apiBase(provider, token)+'sendLocation', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({chat_id: chatId, latitude: lat, longitude: lon})
-    });
+    const form = new FormData();
+    form.append('chat_id', chatId);
+    form.append('latitude', lat);
+    form.append('longitude', lon);
+    const r = await fetch(apiBase(provider, token)+'sendLocation', { method:'POST', body: form });
     return await r.json();
   }catch(e){ return {ok:false}; }
 }
