@@ -100,6 +100,8 @@
     <input type="text" id="tgToken" dir="ltr" style="text-align:left;">
     <label for="tgChatId">Chat ID تلگرام</label>
     <input type="text" id="tgChatId" dir="ltr" style="text-align:left;">
+    <label for="tgProxy">آدرس پروکسی (اختیاری — برای دور زدن فیلترینگ بدون VPN)</label>
+    <input type="text" id="tgProxy" dir="ltr" style="text-align:left;" placeholder="https://your-worker.workers.dev">
     <button class="btn-secondary" id="testTg">تست ارسال (تلگرام)</button>
 
     <hr>
@@ -131,10 +133,10 @@ const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const $ = id => document.getElementById(id);
 
-function apiBase(provider, token){
-  return provider === 'bale'
-    ? `https://tapi.bale.ai/bot${token}/`
-    : `https://api.telegram.org/bot${token}/`;
+function apiBase(provider, token, proxyUrl){
+  if(provider === 'bale') return `https://tapi.bale.ai/bot${token}/`;
+  if(proxyUrl) return `${proxyUrl.replace(/\/$/,'')}/bot${token}/`;
+  return `https://api.telegram.org/bot${token}/`;
 }
 
 async function showSettings(){
@@ -148,6 +150,7 @@ async function showSettings(){
     $('tgEnabled').checked = !!data.telegram_enabled;
     $('tgToken').value = data.telegram_token || '';
     $('tgChatId').value = data.telegram_chat_id || '';
+    $('tgProxy').value = data.telegram_proxy_url || '';
     $('alertText').value = data.alert_text || '';
     $('phone').value = data.phone || '';
   }
@@ -188,6 +191,7 @@ $('saveBtn').addEventListener('click', async ()=>{
     telegram_enabled: $('tgEnabled').checked,
     telegram_token: $('tgToken').value.trim(),
     telegram_chat_id: $('tgChatId').value.trim(),
+    telegram_proxy_url: $('tgProxy').value.trim(),
     alert_text: $('alertText').value.trim(),
     phone: $('phone').value.trim(),
     updated_at: new Date().toISOString()
@@ -205,6 +209,7 @@ $('saveBtn').addEventListener('click', async ()=>{
 async function testProvider(provider, tokenId, chatIdId, statusPrefix){
   const token = $(tokenId).value.trim();
   const chatId = $(chatIdId).value.trim();
+  const proxyUrl = provider === 'telegram' ? $('tgProxy').value.trim() : null;
   if(!token || !chatId){
     $('saveStatus').textContent = 'اول توکن و چت آیدی ' + statusPrefix + ' را وارد کنید.';
     $('saveStatus').className = 'status fail';
@@ -216,7 +221,7 @@ async function testProvider(provider, tokenId, chatIdId, statusPrefix){
     const form = new FormData();
     form.append('chat_id', chatId);
     form.append('text', '✅ پیام تست از پنل مدیریت.');
-    const res = await fetch(apiBase(provider, token) + 'sendMessage', { method:'POST', body: form });
+    const res = await fetch(apiBase(provider, token, proxyUrl) + 'sendMessage', { method:'POST', body: form });
     const data = await res.json();
     if(data.ok){
       $('saveStatus').textContent = 'تست ' + statusPrefix + ' موفق بود ✔';
@@ -226,7 +231,7 @@ async function testProvider(provider, tokenId, chatIdId, statusPrefix){
       $('saveStatus').className = 'status fail';
     }
   }catch(e){
-    $('saveStatus').textContent = 'خطا در اتصال' + (provider==='telegram' ? ' (VPN فعال است؟)' : '') + '.';
+    $('saveStatus').textContent = 'خطا در اتصال' + (provider==='telegram' && !proxyUrl ? ' (VPN فعال است؟ یا آدرس پروکسی رو پر کن)' : '') + '.';
     $('saveStatus').className = 'status fail';
   }
 }
@@ -256,7 +261,7 @@ $('testLoc').addEventListener('click', async ()=>{
       setLoc(`موقعیت گرفته شد (دقت: ${Math.round(accuracy)} متر). در حال ارسال...`, '');
 
       const bale = { token: $('baleToken').value.trim(), chatId: $('baleChatId').value.trim(), on: $('baleEnabled').checked };
-      const tg = { token: $('tgToken').value.trim(), chatId: $('tgChatId').value.trim(), on: $('tgEnabled').checked };
+      const tg = { token: $('tgToken').value.trim(), chatId: $('tgChatId').value.trim(), on: $('tgEnabled').checked, proxyUrl: $('tgProxy').value.trim() };
       const results = [];
 
       if(bale.on && bale.token && bale.chatId){
@@ -276,7 +281,7 @@ $('testLoc').addEventListener('click', async ()=>{
           form.append('chat_id', tg.chatId);
           form.append('latitude', latitude);
           form.append('longitude', longitude);
-          const r = await fetch(apiBase('telegram', tg.token)+'sendLocation', { method:'POST', body: form });
+          const r = await fetch(apiBase('telegram', tg.token, tg.proxyUrl)+'sendLocation', { method:'POST', body: form });
           const d = await r.json();
           results.push('تلگرام: ' + (d.ok ? 'موفق ✔' : 'خطا → ' + (d.description || JSON.stringify(d))));
         }catch(e){ results.push('تلگرام: خطای شبکه (احتمالاً VPN خاموش است)'); }

