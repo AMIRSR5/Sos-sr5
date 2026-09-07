@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>پنل مدیریت</title>
+<style>
+  :root{
+    --bg:#0d0f12; --panel:#15181d; --panel-2:#1c2027;
+    --text:#e9ebee; --muted:#8b93a1; --line:#262b33;
+    --ok:#3aa06b; --fail:#e0342f; --accent:#2f6fed;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; min-height:100vh;
+    background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Tahoma,"Vazirmatn",sans-serif;
+    display:flex; align-items:center; justify-content:center;
+    padding:20px;
+  }
+  .card{
+    width:100%; max-width:460px;
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:16px;
+    padding:26px 22px;
+  }
+  h1{font-size:19px;margin:0 0 4px;}
+  p.desc{color:var(--muted);font-size:13px;margin:0 0 20px;line-height:1.8;}
+  label{display:block;font-size:13px;color:var(--muted);margin:14px 0 6px;}
+  input[type=text], input[type=password], input[type=email], textarea, select{
+    width:100%; background:var(--panel-2); border:1px solid var(--line);
+    border-radius:10px; padding:12px 14px; color:var(--text); font-size:15px;
+    outline:none; direction:ltr; text-align:right;
+  }
+  select{direction:rtl;}
+  textarea{min-height:80px;resize:vertical;direction:rtl;font-family:inherit;}
+  .switch-row{display:flex;align-items:center;justify-content:space-between;margin-top:14px;}
+  .switch-row label{margin:0;color:var(--text);font-size:14px;}
+  input[type=checkbox]{width:20px;height:20px;}
+  button{
+    width:100%; padding:13px 10px; border-radius:10px; border:none;
+    font-size:15px; font-weight:700; cursor:pointer; margin-top:18px;
+  }
+  .btn-primary{background:var(--accent); color:#fff;}
+  .btn-secondary{background:var(--panel-2); color:var(--text); border:1px solid var(--line);}
+  .status{margin-top:12px;font-size:13px;min-height:18px;}
+  .status.ok{color:var(--ok);}
+  .status.fail{color:var(--fail);}
+  hr{border:none;border-top:1px solid var(--line);margin:22px 0;}
+  .section-title{font-size:14px;font-weight:700;color:var(--muted);margin:0 0 4px;}
+  .hidden{display:none;}
+  .top-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+  .logout{background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;width:auto;margin:0;padding:4px 0;}
+</style>
+</head>
+<body>
+
+<div class="card">
+
+  <!-- login -->
+  <div id="loginView">
+    <h1>ورود به پنل مدیریت</h1>
+    <p class="desc">فقط شما به این صفحه دسترسی دارید. آدرس این صفحه را با کسی به اشتراک نگذارید.</p>
+    <label for="email">ایمیل</label>
+    <input type="email" id="email" autocomplete="username">
+    <label for="password">رمز عبور</label>
+    <input type="password" id="password" autocomplete="current-password">
+    <button class="btn-primary" id="loginBtn">ورود</button>
+    <p class="status" id="loginStatus"></p>
+  </div>
+
+  <!-- settings -->
+  <div id="settingsView" class="hidden">
+    <div class="top-bar">
+      <h1>تنظیمات کمک اضطراری</h1>
+      <button class="logout" id="logoutBtn">خروج</button>
+    </div>
+    <p class="desc">هر تغییری که ذخیره کنید، بلافاصله روی گوشی (بار بعدی که برنامه باز شود) اعمال می‌شود.</p>
+
+    <p class="section-title">بله</p>
+    <div class="switch-row">
+      <label for="baleEnabled">فعال باشد</label>
+      <input type="checkbox" id="baleEnabled">
+    </div>
+    <label for="baleToken">توکن ربات بله</label>
+    <input type="text" id="baleToken" dir="ltr" style="text-align:left;">
+    <label for="baleChatId">Chat ID بله</label>
+    <input type="text" id="baleChatId" dir="ltr" style="text-align:left;">
+    <button class="btn-secondary" id="testBale">تست ارسال (بله)</button>
+
+    <hr>
+
+    <p class="section-title">تلگرام</p>
+    <div class="switch-row">
+      <label for="tgEnabled">فعال باشد (نیاز به VPN فعال دارد)</label>
+      <input type="checkbox" id="tgEnabled">
+    </div>
+    <label for="tgToken">توکن ربات تلگرام</label>
+    <input type="text" id="tgToken" dir="ltr" style="text-align:left;">
+    <label for="tgChatId">Chat ID تلگرام</label>
+    <input type="text" id="tgChatId" dir="ltr" style="text-align:left;">
+    <button class="btn-secondary" id="testTg">تست ارسال (تلگرام)</button>
+
+    <hr>
+
+    <p class="section-title">پیام و شماره تماس</p>
+    <label for="alertText">متن پیام هشدار</label>
+    <textarea id="alertText"></textarea>
+    <label for="phone">شمارهٔ تلفن (برای تماس اضطراری پنهان)</label>
+    <input type="text" id="phone" dir="ltr" style="text-align:left;">
+
+    <button class="btn-primary" id="saveBtn">ذخیره همه چیز</button>
+    <p class="status" id="saveStatus"></p>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL = 'PASTE_YOUR_SUPABASE_URL_HERE';
+const SUPABASE_ANON_KEY = 'PASTE_YOUR_SUPABASE_ANON_KEY_HERE';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const $ = id => document.getElementById(id);
+
+function apiBase(provider, token){
+  return provider === 'bale'
+    ? `https://tapi.bale.ai/bot${token}/`
+    : `https://api.telegram.org/bot${token}/`;
+}
+
+async function showSettings(){
+  $('loginView').classList.add('hidden');
+  $('settingsView').classList.remove('hidden');
+  const { data } = await sb.from('sos_settings').select('*').eq('id','main').single();
+  if(data){
+    $('baleEnabled').checked = !!data.bale_enabled;
+    $('baleToken').value = data.bale_token || '';
+    $('baleChatId').value = data.bale_chat_id || '';
+    $('tgEnabled').checked = !!data.telegram_enabled;
+    $('tgToken').value = data.telegram_token || '';
+    $('tgChatId').value = data.telegram_chat_id || '';
+    $('alertText').value = data.alert_text || '';
+    $('phone').value = data.phone || '';
+  }
+}
+
+sb.auth.getSession().then(({data})=>{
+  if(data.session) showSettings();
+});
+
+$('loginBtn').addEventListener('click', async ()=>{
+  $('loginStatus').textContent = 'در حال ورود...';
+  $('loginStatus').className = 'status';
+  const { error } = await sb.auth.signInWithPassword({
+    email: $('email').value.trim(),
+    password: $('password').value
+  });
+  if(error){
+    $('loginStatus').textContent = 'خطا: ' + error.message;
+    $('loginStatus').className = 'status fail';
+  }else{
+    showSettings();
+  }
+});
+
+$('logoutBtn').addEventListener('click', async ()=>{
+  await sb.auth.signOut();
+  $('settingsView').classList.add('hidden');
+  $('loginView').classList.remove('hidden');
+});
+
+$('saveBtn').addEventListener('click', async ()=>{
+  $('saveStatus').textContent = 'در حال ذخیره...';
+  $('saveStatus').className = 'status';
+  const payload = {
+    bale_enabled: $('baleEnabled').checked,
+    bale_token: $('baleToken').value.trim(),
+    bale_chat_id: $('baleChatId').value.trim(),
+    telegram_enabled: $('tgEnabled').checked,
+    telegram_token: $('tgToken').value.trim(),
+    telegram_chat_id: $('tgChatId').value.trim(),
+    alert_text: $('alertText').value.trim(),
+    phone: $('phone').value.trim(),
+    updated_at: new Date().toISOString()
+  };
+  const { error } = await sb.from('sos_settings').update(payload).eq('id','main');
+  if(error){
+    $('saveStatus').textContent = 'خطا در ذخیره: ' + error.message;
+    $('saveStatus').className = 'status fail';
+  }else{
+    $('saveStatus').textContent = 'ذخیره شد ✔';
+    $('saveStatus').className = 'status ok';
+  }
+});
+
+async function testProvider(provider, tokenId, chatIdId, statusPrefix){
+  const token = $(tokenId).value.trim();
+  const chatId = $(chatIdId).value.trim();
+  if(!token || !chatId){
+    $('saveStatus').textContent = 'اول توکن و چت آیدی ' + statusPrefix + ' را وارد کنید.';
+    $('saveStatus').className = 'status fail';
+    return;
+  }
+  $('saveStatus').textContent = 'در حال تست ' + statusPrefix + '...';
+  $('saveStatus').className = 'status';
+  try{
+    const res = await fetch(apiBase(provider, token) + 'sendMessage', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({chat_id: chatId, text: '✅ پیام تست از پنل مدیریت.'})
+    });
+    const data = await res.json();
+    if(data.ok){
+      $('saveStatus').textContent = 'تست ' + statusPrefix + ' موفق بود ✔';
+      $('saveStatus').className = 'status ok';
+    }else{
+      $('saveStatus').textContent = 'خطا: ' + (data.description || 'نامشخص');
+      $('saveStatus').className = 'status fail';
+    }
+  }catch(e){
+    $('saveStatus').textContent = 'خطا در اتصال' + (provider==='telegram' ? ' (VPN فعال است؟)' : '') + '.';
+    $('saveStatus').className = 'status fail';
+  }
+}
+$('testBale').addEventListener('click', ()=>testProvider('bale','baleToken','baleChatId','بله'));
+$('testTg').addEventListener('click', ()=>testProvider('telegram','tgToken','tgChatId','تلگرام'));
+</script>
+</body>
+</html>
