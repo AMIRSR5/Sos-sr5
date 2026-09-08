@@ -106,6 +106,22 @@
 
     <hr>
 
+    <p class="section-title">روبیکا (پیشنهاد می‌شود — ایرانی و فیلتر نیست، پشتیبان بله)</p>
+    <div class="switch-row">
+      <label for="rubikaEnabled">فعال باشد</label>
+      <input type="checkbox" id="rubikaEnabled">
+    </div>
+    <label for="rubikaToken">توکن ربات روبیکا</label>
+    <input type="text" id="rubikaToken" dir="ltr" style="text-align:left;">
+    <label for="rubikaChatId">Chat ID روبیکا</label>
+    <input type="text" id="rubikaChatId" dir="ltr" style="text-align:left;">
+    <label for="rubikaProxy">آدرس پروکسی (اختیاری — فقط اگه تست بدون آن خطای شبکه داد)</label>
+    <input type="text" id="rubikaProxy" dir="ltr" style="text-align:left;" placeholder="https://your-worker.workers.dev">
+    <p class="desc" style="margin:6px 0 0;">توجه: روبیکا فعلاً فقط پیام و لوکیشن می‌فرستد؛ عکس‌ها را همچنان بله/تلگرام می‌فرستند.</p>
+    <button class="btn-secondary" id="testRubika">تست ارسال (روبیکا)</button>
+
+    <hr>
+
     <p class="section-title">پیام و شماره تماس</p>
     <label for="alertText">متن پیام هشدار</label>
     <textarea id="alertText"></textarea>
@@ -133,10 +149,13 @@ const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const $ = id => document.getElementById(id);
 
-function apiBase(provider, token, proxyUrl){
-  if(provider === 'bale') return `https://tapi.bale.ai/bot${token}/`;
-  if(proxyUrl) return `${proxyUrl.replace(/\/$/,'')}/bot${token}/`;
-  return `https://api.telegram.org/bot${token}/`;
+function requestUrl(provider, token, method, proxyUrl){
+  let direct;
+  if(provider === 'bale') direct = `https://tapi.bale.ai/bot${token}/${method}`;
+  else if(provider === 'rubika') direct = `https://botapi.rubika.ir/v3/${token}/${method}`;
+  else direct = `https://api.telegram.org/bot${token}/${method}`;
+  if(proxyUrl) return `${proxyUrl.replace(/\/$/,'')}/relay?url=${encodeURIComponent(direct)}`;
+  return direct;
 }
 
 async function showSettings(){
@@ -151,6 +170,10 @@ async function showSettings(){
     $('tgToken').value = data.telegram_token || '';
     $('tgChatId').value = data.telegram_chat_id || '';
     $('tgProxy').value = data.telegram_proxy_url || '';
+    $('rubikaEnabled').checked = !!data.rubika_enabled;
+    $('rubikaToken').value = data.rubika_token || '';
+    $('rubikaChatId').value = data.rubika_chat_id || '';
+    $('rubikaProxy').value = data.rubika_proxy_url || '';
     $('alertText').value = data.alert_text || '';
     $('phone').value = data.phone || '';
   }
@@ -192,6 +215,10 @@ $('saveBtn').addEventListener('click', async ()=>{
     telegram_token: $('tgToken').value.trim(),
     telegram_chat_id: $('tgChatId').value.trim(),
     telegram_proxy_url: $('tgProxy').value.trim(),
+    rubika_enabled: $('rubikaEnabled').checked,
+    rubika_token: $('rubikaToken').value.trim(),
+    rubika_chat_id: $('rubikaChatId').value.trim(),
+    rubika_proxy_url: $('rubikaProxy').value.trim(),
     alert_text: $('alertText').value.trim(),
     phone: $('phone').value.trim(),
     updated_at: new Date().toISOString()
@@ -206,10 +233,10 @@ $('saveBtn').addEventListener('click', async ()=>{
   }
 });
 
-async function testProvider(provider, tokenId, chatIdId, statusPrefix){
+async function testProvider(provider, tokenId, chatIdId, statusPrefix, proxyId){
   const token = $(tokenId).value.trim();
   const chatId = $(chatIdId).value.trim();
-  const proxyUrl = provider === 'telegram' ? $('tgProxy').value.trim() : null;
+  const proxyUrl = proxyId ? $(proxyId).value.trim() : null;
   if(!token || !chatId){
     $('saveStatus').textContent = 'اول توکن و چت آیدی ' + statusPrefix + ' را وارد کنید.';
     $('saveStatus').className = 'status fail';
@@ -218,16 +245,22 @@ async function testProvider(provider, tokenId, chatIdId, statusPrefix){
   $('saveStatus').textContent = 'در حال تست ' + statusPrefix + '...';
   $('saveStatus').className = 'status';
   try{
-    const form = new FormData();
-    form.append('chat_id', chatId);
-    form.append('text', '✅ پیام تست از پنل مدیریت.');
-    const res = await fetch(apiBase(provider, token, proxyUrl) + 'sendMessage', { method:'POST', body: form });
+    const url = requestUrl(provider, token, 'sendMessage', proxyUrl);
+    let res;
+    if(provider === 'rubika'){
+      res = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({chat_id: chatId, text: '✅ پیام تست از پنل مدیریت.'}) });
+    }else{
+      const form = new FormData();
+      form.append('chat_id', chatId);
+      form.append('text', '✅ پیام تست از پنل مدیریت.');
+      res = await fetch(url, { method:'POST', body: form });
+    }
     const data = await res.json();
     if(data.ok){
       $('saveStatus').textContent = 'تست ' + statusPrefix + ' موفق بود ✔';
       $('saveStatus').className = 'status ok';
     }else{
-      $('saveStatus').textContent = 'خطا: ' + (data.description || 'نامشخص');
+      $('saveStatus').textContent = 'خطا: ' + (data.description || JSON.stringify(data));
       $('saveStatus').className = 'status fail';
     }
   }catch(e){
@@ -236,7 +269,8 @@ async function testProvider(provider, tokenId, chatIdId, statusPrefix){
   }
 }
 $('testBale').addEventListener('click', ()=>testProvider('bale','baleToken','baleChatId','بله'));
-$('testTg').addEventListener('click', ()=>testProvider('telegram','tgToken','tgChatId','تلگرام'));
+$('testTg').addEventListener('click', ()=>testProvider('telegram','tgToken','tgChatId','تلگرام','tgProxy'));
+$('testRubika').addEventListener('click', ()=>testProvider('rubika','rubikaToken','rubikaChatId','روبیکا','rubikaProxy'));
 
 $('testLoc').addEventListener('click', async ()=>{
   const setLoc = (msg, cls)=>{ $('locStatus').textContent = msg; $('locStatus').className = 'status ' + (cls||''); };
@@ -262,6 +296,7 @@ $('testLoc').addEventListener('click', async ()=>{
 
       const bale = { token: $('baleToken').value.trim(), chatId: $('baleChatId').value.trim(), on: $('baleEnabled').checked };
       const tg = { token: $('tgToken').value.trim(), chatId: $('tgChatId').value.trim(), on: $('tgEnabled').checked, proxyUrl: $('tgProxy').value.trim() };
+      const rb = { token: $('rubikaToken').value.trim(), chatId: $('rubikaChatId').value.trim(), on: $('rubikaEnabled').checked, proxyUrl: $('rubikaProxy').value.trim() };
       const results = [];
 
       if(bale.on && bale.token && bale.chatId){
@@ -270,7 +305,7 @@ $('testLoc').addEventListener('click', async ()=>{
           form.append('chat_id', bale.chatId);
           form.append('latitude', latitude);
           form.append('longitude', longitude);
-          const r = await fetch(apiBase('bale', bale.token)+'sendLocation', { method:'POST', body: form });
+          const r = await fetch(requestUrl('bale', bale.token, 'sendLocation'), { method:'POST', body: form });
           const d = await r.json();
           results.push('بله: ' + (d.ok ? 'موفق ✔' : 'خطا → ' + (d.description || JSON.stringify(d))));
         }catch(e){ results.push('بله: خطای شبکه'); }
@@ -281,10 +316,20 @@ $('testLoc').addEventListener('click', async ()=>{
           form.append('chat_id', tg.chatId);
           form.append('latitude', latitude);
           form.append('longitude', longitude);
-          const r = await fetch(apiBase('telegram', tg.token, tg.proxyUrl)+'sendLocation', { method:'POST', body: form });
+          const r = await fetch(requestUrl('telegram', tg.token, 'sendLocation', tg.proxyUrl), { method:'POST', body: form });
           const d = await r.json();
           results.push('تلگرام: ' + (d.ok ? 'موفق ✔' : 'خطا → ' + (d.description || JSON.stringify(d))));
         }catch(e){ results.push('تلگرام: خطای شبکه (احتمالاً VPN خاموش است)'); }
+      }
+      if(rb.on && rb.token && rb.chatId){
+        try{
+          const r = await fetch(requestUrl('rubika', rb.token, 'sendLocation', rb.proxyUrl), {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({chat_id: rb.chatId, latitude: String(latitude), longitude: String(longitude)})
+          });
+          const d = await r.json();
+          results.push('روبیکا: ' + (d.ok ? 'موفق ✔' : 'خطا → ' + (d.description || JSON.stringify(d))));
+        }catch(e){ results.push('روبیکا: خطای شبکه'); }
       }
       if(results.length === 0){ results.push('هیچ پیام‌رسانی فعال با توکن/چت‌آیدی معتبر پیدا نشد.'); }
 
