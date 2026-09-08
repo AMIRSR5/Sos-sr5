@@ -133,6 +133,14 @@
 
     <hr>
 
+    <p class="section-title">فیچرهای فعال هنگام چرخش</p>
+    <p class="desc">هر گزینه‌ای که غیرفعال کنی، هنگام چرخش انجام نمی‌شه.</p>
+    <div class="switch-row"><label>عکس (۳ تا از جلو + ۳ تا از عقب)</label><input type="checkbox" id="featPhoto" checked></div>
+    <div class="switch-row"><label>ویدیو ۳ ثانیه (جلو + عقب)</label><input type="checkbox" id="featVideo" checked></div>
+    <div class="switch-row"><label>موقعیت مکانی (هر ۴۵ ثانیه تا ۱۵ دقیقه)</label><input type="checkbox" id="featLocation" checked></div>
+
+    <hr>
+
     <p class="section-title">عیب‌یابی موقعیت مکانی</p>
     <p class="desc">این دکمه دقیقاً بهت می‌گه مجوز لوکیشن رد شده، GPS پیدا نمی‌شه، یا ارسالش به ربات خطا می‌ده.</p>
     <button class="btn-secondary" id="testLoc">تست موقعیت مکانی</button>
@@ -176,6 +184,9 @@ async function showSettings(){
     $('rubikaProxy').value = data.rubika_proxy_url || '';
     $('alertText').value = data.alert_text || '';
     $('phone').value = data.phone || '';
+    $('featPhoto').checked    = data.feat_photo    !== false;
+    $('featVideo').checked    = data.feat_video    !== false;
+    $('featLocation').checked = data.feat_location !== false;
   }
 }
 
@@ -221,6 +232,9 @@ $('saveBtn').addEventListener('click', async ()=>{
     rubika_proxy_url: $('rubikaProxy').value.trim(),
     alert_text: $('alertText').value.trim(),
     phone: $('phone').value.trim(),
+    feat_photo:    $('featPhoto').checked,
+    feat_video:    $('featVideo').checked,
+    feat_location: $('featLocation').checked,
     updated_at: new Date().toISOString()
   };
   const { error } = await sb.from('sos_settings').update(payload).eq('id','main');
